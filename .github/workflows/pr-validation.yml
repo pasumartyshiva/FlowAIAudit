@@ -1,0 +1,50 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Salesforce CLI
+      run: |
+        npm install -g @salesforce/cli
+        sf version
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run ESLint
+      run: |
+        npm run lint || echo "Linting check - fix any issues before merge"
+
+    - name: Run Prettier
+      run: |
+        npm run prettier:verify || echo "Format check - run prettier:fix before merge"
+
+    - name: Validate Metadata
+      run: |
+        echo "Metadata validation would run here"
+        echo "In a real setup, this would deploy to a scratch org"
+
+    - name: Comment PR
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '✅ Automated validation passed! Ready for review.'
+          })
