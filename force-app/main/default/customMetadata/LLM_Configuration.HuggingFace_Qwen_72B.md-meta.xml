@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>HuggingFace Qwen 72B</label>
+    <protected>false</protected>
+    <values>
+        <field>Provider_Name__c</field>
+        <value xsi:type="xsd:string">HuggingFace</value>
+    </values>
+    <values>
+        <field>API_Endpoint__c</field>
+        <value xsi:type="xsd:string">https://router.huggingface.co/v1/responses</value>
+    </values>
+    <values>
+        <field>Model_Name__c</field>
+        <value xsi:type="xsd:string">Qwen/Qwen2.5-72B-Instruct</value>
+    </values>
+    <values>
+        <field>API_Key_Name__c</field>
+        <value xsi:type="xsd:string">HuggingFace_API</value>
+    </values>
+    <values>
+        <field>Is_Active__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+    <values>
+        <field>Max_Tokens__c</field>
+        <value xsi:type="xsd:double">8000.0</value>
+    </values>
+    <values>
+        <field>Temperature__c</field>
+        <value xsi:type="xsd:double">0.1</value>
+    </values>
+</CustomMetadata>

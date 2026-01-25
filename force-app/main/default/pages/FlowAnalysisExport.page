@@ -1,0 +1,145 @@
+<apex:page standardController="Flow_Analysis__c" renderAs="pdf" applyBodyTag="false" showHeader="false">
+    <head>
+        <style>
+            @page {
+                margin: 1in;
+                size: letter;
+            }
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+            }
+            h1 {
+                color: #032e61;
+                border-bottom: 3px solid #0176d3;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            h2 {
+                color: #032e61;
+                margin-top: 30px;
+                margin-bottom: 15px;
+            }
+            h3 {
+                color: #0176d3;
+                margin-top: 20px;
+            }
+            .header-section {
+                background: #f3f3f3;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 5px;
+            }
+            .header-section table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .header-section td {
+                padding: 8px;
+                border-bottom: 1px solid #ddd;
+            }
+            .header-section td:first-child {
+                font-weight: bold;
+                width: 180px;
+            }
+            .status-badge {
+                display: inline-block;
+                padding: 6px 12px;
+                border-radius: 4px;
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            .status-pass {
+                background: #2e844a;
+            }
+            .status-partial {
+                background: #f49756;
+            }
+            .status-fail {
+                background: #c23934;
+            }
+            .status-pending {
+                background: #706e6b;
+            }
+            .analysis-content {
+                margin-top: 30px;
+            }
+            .footer {
+                margin-top: 50px;
+                padding-top: 20px;
+                border-top: 2px solid #032e61;
+                font-size: 11px;
+                color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Flow Analysis Report</h1>
+
+        <div class="header-section">
+            <table>
+                <tr>
+                    <td>Flow Name:</td>
+                    <td><strong><apex:outputField value="{!Flow_Analysis__c.Flow_Label__c}"/></strong></td>
+                </tr>
+                <tr>
+                    <td>API Name:</td>
+                    <td><apex:outputField value="{!Flow_Analysis__c.Flow_API_Name__c}"/></td>
+                </tr>
+                <tr>
+                    <td>Status:</td>
+                    <td>
+                        <apex:outputPanel rendered="{!Flow_Analysis__c.Status__c == 'Pass'}">
+                            <span class="status-badge status-pass">PASS</span>
+                        </apex:outputPanel>
+                        <apex:outputPanel rendered="{!Flow_Analysis__c.Status__c == 'Partial'}">
+                            <span class="status-badge status-partial">PARTIAL</span>
+                        </apex:outputPanel>
+                        <apex:outputPanel rendered="{!Flow_Analysis__c.Status__c == 'Fail'}">
+                            <span class="status-badge status-fail">FAIL</span>
+                        </apex:outputPanel>
+                        <apex:outputPanel rendered="{!Flow_Analysis__c.Status__c == 'Pending'}">
+                            <span class="status-badge status-pending">PENDING</span>
+                        </apex:outputPanel>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Overall Score:</td>
+                    <td>
+                        <strong>
+                            <apex:outputText value="{0, number, 0}">
+                                <apex:param value="{!Flow_Analysis__c.Overall_Score__c}"/>
+                            </apex:outputText>
+                            <apex:outputPanel rendered="{!Flow_Analysis__c.Overall_Score__c != null}">%</apex:outputPanel>
+                        </strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Flow Version:</td>
+                    <td><apex:outputField value="{!Flow_Analysis__c.Flow_Version__c}"/></td>
+                </tr>
+                <tr>
+                    <td>Last Analyzed:</td>
+                    <td>
+                        <apex:outputText value="{0, date, MMMM d, yyyy 'at' h:mm a}">
+                            <apex:param value="{!Flow_Analysis__c.Last_Analyzed__c}"/>
+                        </apex:outputText>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="analysis-content">
+            <apex:outputField value="{!Flow_Analysis__c.Analysis_Report__c}"/>
+        </div>
+
+        <div class="footer">
+            <p><strong>Generated by Flow AI Audit Dashboard</strong></p>
+            <p>Powered by Einstein Prompt Templates</p>
+            <p>© <apex:outputText value="{0, date, yyyy}"><apex:param value="{!TODAY()}"/></apex:outputText> |
+            Generated on <apex:outputText value="{0, date, MMMM d, yyyy 'at' h:mm a}"><apex:param value="{!NOW()}"/></apex:outputText></p>
+        </div>
+    </body>
+</apex:page>

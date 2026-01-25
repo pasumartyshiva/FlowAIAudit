@@ -1,0 +1,637 @@
+<template>
+    <lightning-card title="Flow AI Audit Dashboard" icon-name="custom:custom63">
+        <!-- Header Section with Summary Cards -->
+        <div slot="actions">
+            <lightning-button-icon
+                icon-name="utility:info"
+                variant="border-filled"
+                alternative-text="Help"
+                title="Quick Start Guide"
+                onclick={handleOpenHelp}
+                class="slds-m-right_x-small"
+            ></lightning-button-icon>
+            <lightning-button
+                label="Fetch All Flows"
+                onclick={handleRunAllFlows}
+                variant="brand"
+                disabled={isLoading}
+                icon-name="utility:refresh"
+            ></lightning-button>
+            <lightning-button
+                label="Refresh"
+                onclick={handleRefresh}
+                variant="neutral"
+                icon-name="utility:sync"
+                class="slds-m-left_x-small"
+            ></lightning-button>
+            <lightning-button
+                label="Refresh All Versions"
+                onclick={handleRefreshAllVersions}
+                variant="neutral"
+                icon-name="utility:check"
+                disabled={isLoading}
+                class="slds-m-left_x-small"
+                title="Update all flows to their latest active versions"
+            ></lightning-button>
+            <lightning-button
+                label="Delete Selected"
+                icon-name="utility:delete"
+                onclick={handleDeleteSelected}
+                variant="destructive"
+                disabled={hasNoSelection}
+                class="slds-m-left_x-small"
+            ></lightning-button>
+            <lightning-button
+                label="Delete All Records"
+                icon-name="utility:delete"
+                onclick={handleDeleteAll}
+                variant="destructive-text"
+                class="slds-m-left_x-small"
+            ></lightning-button>
+        </div>
+
+        <!-- Batch Progress Bar -->
+        <template if:true={showBatchProgress}>
+            <div class="slds-box slds-theme_warning slds-m-around_small">
+                <div class="slds-grid slds-gutters">
+                    <div class="slds-col">
+                        <lightning-icon
+                            icon-name="utility:spinner"
+                            size="small"
+                            alternative-text="Processing"
+                        ></lightning-icon>
+                        <span class="slds-m-left_small">{batchProgressText}</span>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Summary Cards -->
+        <div class="slds-m-around_medium">
+            <div class="slds-grid slds-gutters slds-wrap">
+                <!-- Pass Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-large-size_1-of-6">
+                    <div class="summary-card slds-box slds-theme_success">
+                        <div class="slds-text-heading_large">{passCount}</div>
+                        <div class="slds-text-body_small">Pass</div>
+                    </div>
+                </div>
+
+                <!-- Partial Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-large-size_1-of-6">
+                    <div class="summary-card slds-box slds-theme_warning">
+                        <div class="slds-text-heading_large">{partialCount}</div>
+                        <div class="slds-text-body_small">Partial</div>
+                    </div>
+                </div>
+
+                <!-- Fail Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-large-size_1-of-6">
+                    <div class="summary-card slds-box slds-theme_error">
+                        <div class="slds-text-heading_large">{failCount}</div>
+                        <div class="slds-text-body_small">Fail</div>
+                    </div>
+                </div>
+
+                <!-- Pending Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-large-size_1-of-6">
+                    <div class="summary-card slds-box slds-theme_shade">
+                        <div class="slds-text-heading_large">{pendingCount}</div>
+                        <div class="slds-text-body_small">Pending</div>
+                    </div>
+                </div>
+
+                <!-- Analyzing Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-large-size_1-of-6">
+                    <div class="summary-card slds-box slds-theme_info">
+                        <div class="slds-text-heading_large">{analyzingCount}</div>
+                        <div class="slds-text-body_small">Analyzing</div>
+                    </div>
+                </div>
+
+                <!-- Total Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-large-size_1-of-6">
+                    <div class="summary-card slds-box slds-theme_default">
+                        <div class="slds-text-heading_large">{totalCount}</div>
+                        <div class="slds-text-body_small">Total Flows</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="slds-m-around_medium">
+            <div class="slds-grid slds-gutters">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <lightning-combobox
+                        name="status"
+                        label="Filter by Status"
+                        value={selectedStatus}
+                        options={statusOptions}
+                        onchange={handleStatusChange}
+                    ></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <lightning-input
+                        type="search"
+                        label="Search Flows"
+                        value={searchTerm}
+                        onchange={handleSearchChange}
+                        placeholder="Search by flow name..."
+                    ></lightning-input>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="slds-m-around_medium">
+            <template if:true={isLoadingSimple}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <template if:true={hasFlows}>
+                <!-- Table Controls -->
+                <div class="slds-grid slds-gutters slds-m-bottom_small">
+                    <div class="slds-col slds-size_1-of-2">
+                        <div class="slds-text-body_small slds-text-color_weak">
+                            Showing {startRecord} - {endRecord} of {totalRecords} flows
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <div class="slds-float_right">
+                            <lightning-button-group>
+                                <lightning-button
+                                    label="10"
+                                    variant={pageSize10Variant}
+                                    onclick={handlePageSize10}
+                                ></lightning-button>
+                                <lightning-button
+                                    label="25"
+                                    variant={pageSize25Variant}
+                                    onclick={handlePageSize25}
+                                ></lightning-button>
+                                <lightning-button
+                                    label="50"
+                                    variant={pageSize50Variant}
+                                    onclick={handlePageSize50}
+                                ></lightning-button>
+                                <lightning-button
+                                    label="100"
+                                    variant={pageSize100Variant}
+                                    onclick={handlePageSize100}
+                                ></lightning-button>
+                            </lightning-button-group>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flashy Custom Table -->
+                <div class="fancy-table-container">
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout fancy-custom-table">
+                        <thead>
+                            <tr class="slds-line-height_reset">
+                                <th class="slds-text-title_caps" scope="col" style="width: 5%;">
+                                    <div class="slds-text-align_center">
+                                        <lightning-input
+                                            type="checkbox"
+                                            onchange={handleSelectAll}
+                                            checked={isAllSelected}
+                                            variant="label-hidden"
+                                            label="Select All"
+                                        ></lightning-input>
+                                    </div>
+                                </th>
+                                <th class="slds-text-title_caps" scope="col" style="width: 25%;">
+                                    <div class="slds-truncate" title="Flow Name">Flow Name</div>
+                                </th>
+                                <th class="slds-text-title_caps" scope="col" style="width: 7%;">
+                                    <div class="slds-truncate slds-text-align_center" title="Version">Version</div>
+                                </th>
+                                <th class="slds-text-title_caps" scope="col" style="width: 9%;">
+                                    <div class="slds-truncate slds-text-align_center" title="Status">Status</div>
+                                </th>
+                                <th class="slds-text-title_caps" scope="col" style="width: 7%;">
+                                    <div class="slds-truncate slds-text-align_center" title="Score">Score</div>
+                                </th>
+                                <th class="slds-text-title_caps" scope="col" style="width: 17%;">
+                                    <div class="slds-truncate" title="Last Analyzed">Last Analyzed</div>
+                                </th>
+                                <th class="slds-text-title_caps" scope="col" style="width: 30%;">
+                                    <div class="slds-truncate slds-text-align_center" title="Actions">Actions</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={paginatedData} for:item="flow">
+                                <tr key={flow.id} class="slds-hint-parent">
+                                    <td data-label="Select">
+                                        <div class="slds-text-align_center">
+                                            <lightning-input
+                                                type="checkbox"
+                                                data-id={flow.id}
+                                                onchange={handleRowSelection}
+                                                checked={flow.isSelected}
+                                                variant="label-hidden"
+                                                label="Select Row"
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                    <td data-label="Flow Name">
+                                        <div class="slds-truncate" title={flow.flowLabel}>{flow.flowLabel}</div>
+                                    </td>
+                                    <td data-label="Version">
+                                        <div class="slds-text-align_center">
+                                            <template if:true={flow.flowVersion}>
+                                                v{flow.flowVersion}
+                                            </template>
+                                            <template if:false={flow.flowVersion}>
+                                                -
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Status">
+                                        <div class="slds-text-align_center">
+                                            <span class={flow.statusClass}>{flow.status}</span>
+                                        </div>
+                                    </td>
+                                    <td data-label="Score">
+                                        <div class="slds-text-align_center">
+                                            <template if:true={flow.score}>
+                                                {flow.score}
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Last Analyzed">
+                                        <div class="slds-truncate">
+                                            <template if:true={flow.lastAnalyzed}>
+                                                <lightning-formatted-date-time
+                                                    value={flow.lastAnalyzed}
+                                                    year="numeric"
+                                                    month="short"
+                                                    day="2-digit"
+                                                    hour="2-digit"
+                                                    minute="2-digit"
+                                                ></lightning-formatted-date-time>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Actions">
+                                        <div class="slds-text-align_center">
+                                            <lightning-button-group>
+                                                <lightning-button
+                                                    label="Run Analysis"
+                                                    icon-name="utility:refresh"
+                                                    variant="brand"
+                                                    onclick={handleRunAnalysis}
+                                                    data-id={flow.id}
+                                                ></lightning-button>
+                                                <lightning-button
+                                                    label="View"
+                                                    icon-name="utility:preview"
+                                                    variant="neutral"
+                                                    onclick={handleViewAnalysis}
+                                                    data-id={flow.id}
+                                                ></lightning-button>
+                                                <lightning-button
+                                                    label="Update Flow"
+                                                    icon-name="utility:check"
+                                                    variant="neutral"
+                                                    onclick={handleUpdateFlow}
+                                                    data-id={flow.id}
+                                                    title="Refresh flow metadata and version"
+                                                ></lightning-button>
+                                                <lightning-button
+                                                    label="Delete"
+                                                    icon-name="utility:delete"
+                                                    variant="destructive"
+                                                    onclick={handleDeleteSingle}
+                                                    data-id={flow.id}
+                                                ></lightning-button>
+                                            </lightning-button-group>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="slds-m-top_small">
+                    <div class="slds-float_right">
+                            <lightning-button-group>
+                                <lightning-button
+                                    icon-name="utility:chevronleft"
+                                    variant="neutral"
+                                    onclick={handlePreviousPage}
+                                    disabled={isFirstPage}
+                                    title="Previous"
+                                ></lightning-button>
+                                <lightning-button
+                                    label={pageLabel}
+                                    variant="neutral"
+                                    disabled
+                                ></lightning-button>
+                                <lightning-button
+                                    icon-name="utility:chevronright"
+                                    variant="neutral"
+                                    onclick={handleNextPage}
+                                    disabled={isLastPage}
+                                    title="Next"
+                                ></lightning-button>
+                            </lightning-button-group>
+                        </div>
+                </div>
+            </template>
+
+            <template if:false={hasFlows}>
+                <div class="slds-text-align_center slds-m-vertical_large">
+                    <lightning-icon
+                        icon-name="utility:search"
+                        size="large"
+                        alternative-text="No results"
+                    ></lightning-icon>
+                    <p class="slds-m-top_small">No flow analyses found. Click "Fetch All Flows" to get started.</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+
+    <!-- Detail Modal -->
+    <template if:true={showDetailModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container" style="max-width: 90%; width: 1200px;">
+                <!-- Modal Header -->
+                <header class="slds-modal__header" style="background: linear-gradient(135deg, #0176d3 0%, #1589ee 100%); color: white;">
+                    <button
+                        class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close"
+                        onclick={handleCloseModal}
+                    >
+                        <lightning-icon icon-name="utility:close" size="small" alternative-text="Close" class="slds-icon-text-default"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 class="slds-text-heading_medium" style="color: white;">
+                        <lightning-icon icon-name="utility:flow" size="small" class="slds-m-right_x-small" style="fill: white;"></lightning-icon>
+                        {selectedFlow.flowLabel}
+                    </h2>
+                </header>
+
+                <!-- Modal Body -->
+                <div class="slds-modal__content" style="padding: 0; max-height: 70vh; overflow-y: auto;">
+                    <!-- Summary Header -->
+                    <div style="background: #f3f3f3; padding: 20px; border-bottom: 2px solid #e0e0e0;">
+                        <div class="slds-grid slds-gutters slds-wrap">
+                            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                                <div class="analysis-detail-card">
+                                    <div class="analysis-detail-label">API Name</div>
+                                    <div class="analysis-detail-value">{selectedFlow.flowApiName}</div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                                <div class="analysis-detail-card">
+                                    <div class="analysis-detail-label">Status</div>
+                                    <div class="analysis-detail-value">
+                                        <span class={selectedFlow.statusClass}>{selectedFlow.status}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                                <div class="analysis-detail-card">
+                                    <div class="analysis-detail-label">Overall Score</div>
+                                    <div class="analysis-detail-value analysis-score-value">
+                                        {selectedFlow.score}%
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                                <div class="analysis-detail-card">
+                                    <div class="analysis-detail-label">Flow Version</div>
+                                    <div class="analysis-detail-value">v{selectedFlow.flowVersion}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Report Content -->
+                    <div class="slds-p-around_medium analysis-report-content" lwc:dom="manual"></div>
+                </div>
+
+                <!-- Modal Footer -->
+                <footer class="slds-modal__footer" style="background: #f9f9f9; border-top: 2px solid #e0e0e0;">
+                    <lightning-button
+                        label="Export to PDF"
+                        icon-name="utility:download"
+                        onclick={handleExportPDF}
+                        variant="brand"
+                        class="slds-m-right_small"
+                    ></lightning-button>
+                    <lightning-button label="Close" onclick={handleCloseModal} variant="neutral"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Fancy Loading Modal for Einstein Analysis -->
+    <template if:true={isAnalyzing}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container" style="max-width: 600px;">
+                <div class="slds-modal__content slds-p-around_large" style="text-align: center;">
+                    <!-- Fun Animation -->
+                    <div class="analysis-animation">
+                        <lightning-icon
+                            icon-name="utility:einstein"
+                            size="large"
+                            class="einstein-icon"
+                        ></lightning-icon>
+                        <div class="loading-dots">
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Messages -->
+                    <h2 class="slds-text-heading_medium slds-m-top_large slds-m-bottom_small">
+                        {loadingMessage}
+                    </h2>
+                    <p class="slds-text-body_regular slds-text-color_weak">
+                        {loadingSubMessage}
+                    </p>
+
+                    <!-- Progress Bar -->
+                    <div class="slds-m-top_medium">
+                        <lightning-progress-bar
+                            value={analysisProgress}
+                            variant="circular"
+                        ></lightning-progress-bar>
+                    </div>
+
+                    <!-- Fun Tip -->
+                    <div class="slds-box slds-theme_shade slds-m-top_large" style="text-align: left;">
+                        <p class="slds-text-body_small">
+                            <lightning-icon icon-name="utility:info" size="x-small"></lightning-icon>
+                            <strong>Did you know?</strong> {funTip}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Help Modal -->
+    <template if:true={showHelpModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container">
+                <!-- Modal Header -->
+                <header class="slds-modal__header">
+                    <button
+                        class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close"
+                        onclick={handleCloseHelp}
+                    >
+                        <lightning-icon icon-name="utility:close" size="small" alternative-text="Close"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 class="slds-text-heading_medium">
+                        <lightning-icon icon-name="utility:info" size="small" class="slds-m-right_x-small"></lightning-icon>
+                        Flow AI Audit - Quick Start Guide
+                    </h2>
+                </header>
+
+                <!-- Modal Body -->
+                <div class="slds-modal__content slds-p-around_medium">
+                    <!-- Step 1 -->
+                    <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <span class="help-step-number">1</span>
+                            Fetch Your Flows
+                        </h3>
+                        <p class="slds-text-body_regular slds-m-bottom_x-small">
+                            Click <strong>"Fetch All Flows"</strong> to retrieve all active flows from your org.
+                        </p>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                            💡 This creates a record for each flow but doesn't run the AI analysis yet.
+                        </p>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <span class="help-step-number">2</span>
+                            Run AI Analysis
+                        </h3>
+                        <p class="slds-text-body_regular slds-m-bottom_x-small">
+                            Click <strong>"Run Analysis"</strong> on any flow row to get AI-powered insights.
+                        </p>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                            💡 Einstein analyzes 12 best practice categories including error handling, performance, and maintainability.
+                        </p>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <span class="help-step-number">3</span>
+                            Review Results
+                        </h3>
+                        <p class="slds-text-body_regular slds-m-bottom_x-small">
+                            Click <strong>"View"</strong> to see detailed analysis with recommendations.
+                        </p>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                            💡 Results are color-coded: <span class="slds-text-color_success">Pass (green)</span>,
+                            <span class="slds-text-color_warning">Partial (orange)</span>,
+                            <span class="slds-text-color_error">Fail (red)</span>
+                        </p>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <span class="help-step-number">4</span>
+                            Export to PDF
+                        </h3>
+                        <p class="slds-text-body_regular slds-m-bottom_x-small">
+                            In the analysis view, click <strong>"Export to PDF"</strong> to download a professional report.
+                        </p>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                            💡 Perfect for sharing with stakeholders or documenting compliance.
+                        </p>
+                    </div>
+
+                    <!-- Additional Features -->
+                    <div class="slds-box slds-m-bottom_medium" style="background: #e8f4ff; border-left: 4px solid #0176d3;">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <lightning-icon icon-name="utility:knowledge_base" size="x-small"></lightning-icon>
+                            Additional Features
+                        </h3>
+                        <ul class="slds-list_dotted">
+                            <li><strong>Update Flow:</strong> Refresh flow metadata when a new version is published (clears old analysis)</li>
+                            <li><strong>Refresh All Versions:</strong> Check all flows for version updates at once</li>
+                            <li><strong>Filter & Search:</strong> Use the dropdown and search bar to find specific flows</li>
+                            <li><strong>Bulk Delete:</strong> Select multiple rows and delete them together</li>
+                            <li><strong>Auto-Refresh:</strong> Status updates automatically while analysis runs</li>
+                        </ul>
+                    </div>
+
+                    <!-- Understanding Results -->
+                    <div class="slds-box slds-m-bottom_medium" style="background: #fef8e8; border-left: 4px solid #fe9339;">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <lightning-icon icon-name="utility:metrics" size="x-small"></lightning-icon>
+                            Understanding Analysis Results
+                        </h3>
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Score Range</th>
+                                    <th scope="col">Meaning</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="slds-text-color_success">Pass</span></td>
+                                    <td>80-100%</td>
+                                    <td>Excellent - Meets all or most best practices</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="slds-text-color_warning">Partial</span></td>
+                                    <td>50-79%</td>
+                                    <td>Good - Some improvements recommended</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="slds-text-color_error">Fail</span></td>
+                                    <td>0-49%</td>
+                                    <td>Needs Work - Important issues identified</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Tips -->
+                    <div class="slds-box" style="background: #f3f2f2;">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <lightning-icon icon-name="utility:announcement" size="x-small"></lightning-icon>
+                            Pro Tips
+                        </h3>
+                        <ul class="slds-list_dotted">
+                            <li>Run analysis during off-peak hours for faster results</li>
+                            <li>Re-run analysis after making fixes to track improvements</li>
+                            <li>Use filters to focus on flows that need attention (Fail/Partial)</li>
+                            <li>When flows are updated, use "Update Flow" to clear old analysis and re-analyze</li>
+                            <li>Export PDFs for audit trails and compliance documentation</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Got It!" onclick={handleCloseHelp} variant="brand"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>
