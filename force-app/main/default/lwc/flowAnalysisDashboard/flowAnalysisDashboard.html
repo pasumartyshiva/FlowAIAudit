@@ -18,6 +18,15 @@
                 icon-name="utility:refresh"
             ></lightning-button>
             <lightning-button
+                label="Analyze Selected (Max 5)"
+                onclick={handleAnalyzeSelected}
+                variant="success"
+                icon-name="utility:play"
+                disabled={hasNoSelection}
+                class="slds-m-left_x-small"
+                title="Analyze up to 5 selected flows"
+            ></lightning-button>
+            <lightning-button
                 label="Refresh"
                 onclick={handleRefresh}
                 variant="neutral"
@@ -651,10 +660,16 @@
                             Run AI Analysis
                         </h3>
                         <p class="slds-text-body_regular slds-m-bottom_x-small">
-                            Click <strong>"Run Analysis"</strong> on any flow row to get AI-powered insights.
+                            <strong>Single Flow:</strong> Click <strong>"Run Analysis"</strong> in any flow's action menu.
+                        </p>
+                        <p class="slds-text-body_regular slds-m-bottom_x-small">
+                            <strong>Bulk Analysis:</strong> Select up to 5 flows using checkboxes, then click <strong>"Analyze Selected (Max 5)"</strong> button.
                         </p>
                         <p class="slds-text-body_small slds-text-color_weak">
                             💡 Einstein analyzes 12 best practice categories including error handling, performance, and maintainability.
+                        </p>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                            ⚡ Bulk analysis processes flows sequentially to avoid system overload. Limit: 5 flows at a time.
                         </p>
                     </div>
 
@@ -695,6 +710,7 @@
                             Additional Features
                         </h3>
                         <ul class="slds-list_dotted">
+                            <li><strong>Bulk Analysis:</strong> Select up to 5 flows and analyze them with one click - faster than analyzing one by one!</li>
                             <li><strong>Update Flow:</strong> Refresh flow metadata when a new version is published (clears old analysis)</li>
                             <li><strong>Filter & Search:</strong> Use the dropdown and search bar to find specific flows</li>
                             <li><strong>Bulk Delete:</strong> Select multiple rows and delete them together</li>

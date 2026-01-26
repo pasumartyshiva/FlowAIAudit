@@ -806,6 +806,88 @@ export default class FlowAnalysisDashboard extends LightningElement {
         this.endRecord = Math.min(end, this.totalRecords);
     }
 
+    handleAnalyzeSelected() {
+        if (this.selectedRows.length === 0) {
+            this.showToast('Warning', 'Please select at least one flow to analyze', 'warning');
+            return;
+        }
+
+        if (this.selectedRows.length > 5) {
+            this.showToast('Warning', 'Please select maximum 5 flows at a time to avoid system overload', 'warning');
+            return;
+        }
+
+        // Get selected flow records
+        const selectedFlows = this.paginatedData.filter(flow =>
+            this.selectedRows.includes(flow.id)
+        );
+
+        // Filter out flows that already have analysis in progress or completed
+        const flowsToAnalyze = selectedFlows.filter(flow =>
+            flow.status === 'Pending' || flow.status === 'Error'
+        );
+
+        if (flowsToAnalyze.length === 0) {
+            this.showToast('Info', 'All selected flows already have analysis completed or in progress', 'info');
+            return;
+        }
+
+        if (flowsToAnalyze.length < selectedFlows.length) {
+            const skippedCount = selectedFlows.length - flowsToAnalyze.length;
+            this.showToast('Info', `Skipping ${skippedCount} flow(s) that already have analysis`, 'info');
+        }
+
+        // Confirm before proceeding
+        const message = `Analyze ${flowsToAnalyze.length} flow(s)? This will use Einstein credits.`;
+        if (!confirm(message)) {
+            return;
+        }
+
+        // Start analyzing each flow sequentially
+        this.isLoading = true;
+        let successCount = 0;
+        let errorCount = 0;
+
+        const analyzeNext = (index) => {
+            if (index >= flowsToAnalyze.length) {
+                // All done
+                this.isLoading = false;
+                this.showToast(
+                    'Bulk Analysis Complete',
+                    `✅ Success: ${successCount}, ❌ Errors: ${errorCount}`,
+                    errorCount > 0 ? 'warning' : 'success'
+                );
+                return Promise.all([
+                    refreshApex(this.wiredSummaryStatsResult),
+                    refreshApex(this.wiredFlowAnalysesResult)
+                ]);
+            }
+
+            const flow = flowsToAnalyze[index];
+            return reanalyzeFlow({ recordId: flow.id })
+                .then(() => {
+                    successCount++;
+                    this.showToast('Success', `Analyzing: ${flow.flowLabel}`, 'success');
+                    // Refresh data after each analysis
+                    return Promise.all([
+                        refreshApex(this.wiredSummaryStatsResult),
+                        refreshApex(this.wiredFlowAnalysesResult)
+                    ]);
+                })
+                .catch(error => {
+                    errorCount++;
+                    this.showToast('Error', `Failed: ${flow.flowLabel} - ${error.body?.message || 'Unknown error'}`, 'error');
+                })
+                .then(() => {
+                    // Continue with next flow
+                    return analyzeNext(index + 1);
+                });
+        };
+
+        // Start the chain
+        analyzeNext(0);
+    }
+
     handleDeleteAll() {
         if (confirm('⚠️ Are you sure you want to delete ALL flow analysis records? This action cannot be undone!')) {
             this.isLoading = true;
