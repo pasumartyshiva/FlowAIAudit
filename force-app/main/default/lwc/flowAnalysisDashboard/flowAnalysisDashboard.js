@@ -9,7 +9,6 @@ import deleteAllAnalyses from '@salesforce/apex/FlowAnalysisDashboardController.
 import deleteAnalyses from '@salesforce/apex/FlowAnalysisDashboardController.deleteAnalyses';
 import getBatchProgress from '@salesforce/apex/FlowAnalysisDashboardController.getBatchProgress';
 import updateFlowMetadata from '@salesforce/apex/FlowAnalysisDashboardController.updateFlowMetadata';
-import refreshAllFlowVersions from '@salesforce/apex/FlowAnalysisDashboardController.refreshAllFlowVersions';
 import generatePDF from '@salesforce/apex/FlowAnalysisPDFController.generatePDF';
 
 const COLUMNS = [
@@ -847,25 +846,5 @@ export default class FlowAnalysisDashboard extends LightningElement {
             .finally(() => {
                 this.isLoading = false;
             });
-    }
-
-    handleRefreshAllVersions() {
-        if (confirm('This will check all flows for version updates. Continue?')) {
-            this.isLoading = true;
-            refreshAllFlowVersions()
-                .then(result => {
-                    this.showToast('Success', result, 'success');
-                    return Promise.all([
-                        refreshApex(this.wiredSummaryStatsResult),
-                        refreshApex(this.wiredFlowAnalysesResult)
-                    ]);
-                })
-                .catch(error => {
-                    this.showToast('Error', error.body?.message || 'Error refreshing flows', 'error');
-                })
-                .finally(() => {
-                    this.isLoading = false;
-                });
-        }
     }
 }
