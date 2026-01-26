@@ -817,25 +817,10 @@ export default class FlowAnalysisDashboard extends LightningElement {
             return;
         }
 
-        // Get selected flow records
-        const selectedFlows = this.paginatedData.filter(flow =>
+        // Get selected flow records - allow re-analysis of any flow
+        const flowsToAnalyze = this.paginatedData.filter(flow =>
             this.selectedRows.includes(flow.id)
         );
-
-        // Filter out flows that already have analysis in progress or completed
-        const flowsToAnalyze = selectedFlows.filter(flow =>
-            flow.status === 'Pending' || flow.status === 'Error'
-        );
-
-        if (flowsToAnalyze.length === 0) {
-            this.showToast('Info', 'All selected flows already have analysis completed or in progress', 'info');
-            return;
-        }
-
-        if (flowsToAnalyze.length < selectedFlows.length) {
-            const skippedCount = selectedFlows.length - flowsToAnalyze.length;
-            this.showToast('Info', `Skipping ${skippedCount} flow(s) that already have analysis`, 'info');
-        }
 
         // Confirm before proceeding
         const message = `Analyze ${flowsToAnalyze.length} flow(s)? This will use Einstein credits.`;
