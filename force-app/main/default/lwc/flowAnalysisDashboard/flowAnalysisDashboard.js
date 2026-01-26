@@ -843,15 +843,17 @@ export default class FlowAnalysisDashboard extends LightningElement {
             return;
         }
 
-        // Start analyzing each flow sequentially
-        this.isLoading = true;
+        // Start fancy loading animation
+        this.startAnalysisAnimation();
+
         let successCount = 0;
         let errorCount = 0;
+        const totalFlows = flowsToAnalyze.length;
 
         const analyzeNext = (index) => {
             if (index >= flowsToAnalyze.length) {
-                // All done
-                this.isLoading = false;
+                // All done - stop animation
+                this.stopAnalysisAnimation();
                 this.showToast(
                     'Bulk Analysis Complete',
                     `✅ Success: ${successCount}, ❌ Errors: ${errorCount}`,
@@ -864,10 +866,16 @@ export default class FlowAnalysisDashboard extends LightningElement {
             }
 
             const flow = flowsToAnalyze[index];
+            const currentFlowNumber = index + 1;
+
+            // Update loading message to show current flow being processed
+            this.loadingMessage = `Analyzing Flow ${currentFlowNumber} of ${totalFlows}`;
+            this.loadingSubMessage = `Processing: ${flow.flowLabel}`;
+            this.analysisProgress = Math.round((currentFlowNumber / totalFlows) * 100);
+
             return reanalyzeFlow({ flowApiName: flow.flowApiName })
                 .then(() => {
                     successCount++;
-                    this.showToast('Success', `Analyzing: ${flow.flowLabel}`, 'success');
                     // Refresh data after each analysis
                     return Promise.all([
                         refreshApex(this.wiredSummaryStatsResult),
@@ -876,7 +884,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
                 })
                 .catch(error => {
                     errorCount++;
-                    this.showToast('Error', `Failed: ${flow.flowLabel} - ${error.body?.message || 'Unknown error'}`, 'error');
+                    console.error(`Failed to analyze ${flow.flowLabel}:`, error);
                 })
                 .then(() => {
                     // Continue with next flow
