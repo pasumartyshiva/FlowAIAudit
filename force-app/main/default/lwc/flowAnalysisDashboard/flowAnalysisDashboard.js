@@ -864,7 +864,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
             }
 
             const flow = flowsToAnalyze[index];
-            return reanalyzeFlow({ recordId: flow.id })
+            return reanalyzeFlow({ flowApiName: flow.flowApiName })
                 .then(() => {
                     successCount++;
                     this.showToast('Success', `Analyzing: ${flow.flowLabel}`, 'success');
