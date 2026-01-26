@@ -71,12 +71,12 @@ Evaluates flows across **12 critical categories**:
 ### 📊 Scoring System
 
 - **COMPLIANT** (8.33 pts) - Meets best practices
-- **PARTIAL** (4.17 pts) - Some improvements needed
+- **NEEDS_WORK** (4.17 pts) - Some improvements needed
 - **ISSUE** (0 pts) - Requires immediate attention
 
 **Overall Status:**
 - 🟢 **PASS** (80-100%)
-- 🟡 **PARTIAL** (50-79%)
+- 🟡 **NEEDS_WORK** (50-79%)
 - 🔴 **FAIL** (0-49%)
 
 ### 🎨 Beautiful UI
@@ -155,79 +155,39 @@ Evaluates flows across **12 critical categories**:
 
 ## 🚀 Installation
 
-### Option 1: Deploy from GitHub (Recommended)
-
 ```bash
 # 1. Clone the repository
 git clone https://github.com/pasumartyshiva/FlowAIAudit.git
 cd FlowAIAudit
 
 # 2. Authenticate with your Salesforce org
-sf org login web --set-default-dev-hub --alias my-hub
-sf org login web --set-default --alias my-org
+sf org login web --alias my-org
 
 # 3. Deploy the metadata
-sf project deploy start --source-dir force-app
-
-# 4. Assign permission set
-sf org assign permset --name Flow_AI_Audit_Dashboard_Access
+sf project deploy start --source-dir force-app/main/default --target-org my-org
 ```
 
-### Option 2: Deploy Using Unlocked Package
-
-```bash
-# Install the package
-sf package install --package 04t... --wait 10 --target-org my-org
-```
-
-### Option 3: Manual Deployment
-
-1. Download the repository as ZIP
-2. Extract to your local machine
-3. Use Salesforce Extensions for VS Code to deploy:
-   - Right-click on `force-app` folder
-   - Select "SFDX: Deploy Source to Org"
+For detailed deployment instructions, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 
 ---
 
 ## ⚙️ Configuration
 
-### Step 1: Set Up Tooling API Access
+### Set Up Tooling API Access
 
-Follow the comprehensive guide: [Tooling API Setup](docs/TOOLING_API_SETUP.md)
+Create Named Credential, Auth Provider, and Connected App to enable flow metadata retrieval.
 
-Quick summary:
-1. Create Connected App with OAuth
-2. Create Auth Provider (Salesforce type)
-3. Create Named Credential (`Salesforce_Tooling_API`)
-4. Authenticate and verify
+See detailed setup instructions in [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 
-### Step 2: Configure Einstein Prompt Template
+### Grant User Access
 
-1. Go to **Setup** → **Einstein** → **Prompt Templates**
-2. Click **New Template**
-3. Configure:
-   - **Name**: `Flow_Best_Practices_Analysis`
-   - **Template Type**: `Einstein for Flow`
-   - **Model**: `Claude Sonnet 3.7` (or `Claude Sonnet 4.5`)
-   - **Response Format**: `JSON`
+Create a permission set to grant users access:
 
-4. Copy the prompt from: [PROPER_JSON_STRUCTURE.md](PROPER_JSON_STRUCTURE.md)
-5. Paste into the template
-6. Click **Save**
-
-### Step 3: Create Custom Object Records Access
-
-Grant users access to the `Flow_Analysis__c` custom object:
-
-```bash
-sf org assign permset --name Flow_AI_Audit_Dashboard_Access
-```
-
-Or manually:
 1. **Setup** → **Permission Sets** → **New**
-2. Add object permissions for `Flow_Analysis__c`
-3. Assign to users
+2. Add object permissions for `Flow_Analysis__c` (CRUD + View/Modify All)
+3. Add Apex class access for: FlowAnalysis*, ToolingAPIService, ExternalLLMService
+4. Add Visualforce page access for: FlowAnalysisExport
+5. Assign to users
 
 ---
 
@@ -260,7 +220,7 @@ Or manually:
 #### Category Cards
 Each of the 12 categories shows:
 - **Icon**: Visual identifier
-- **Status Badge**: COMPLIANT, PARTIAL, or ISSUE
+- **Status Badge**: COMPLIANT, NEEDS_WORK, or ISSUE
 - **Analysis**: Brief summary
 - **Details**: Specific findings with headings
 - **Explanation**: Why the status was assigned
@@ -276,22 +236,9 @@ Quick reference showing all 12 categories with:
 
 ## 📚 Documentation
 
-### Core Documentation
-- [Installation Guide](docs/INSTALLATION.md)
-- [Tooling API Setup](docs/TOOLING_API_SETUP.md)
-- [Einstein Configuration](docs/EINSTEIN_SETUP.md)
-- [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
-
-### Developer Documentation
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [API Reference](docs/API_REFERENCE.md)
-- [Code Structure](docs/CODE_STRUCTURE.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
-
-### Reference Files
-- [Prompt Template](PROPER_JSON_STRUCTURE.md)
-- [JSON Parsing Fix](JSON_PARSING_FIX.md)
-- [Change Log](CHANGELOG.md)
+- **[Quick Start Guide](QUICK_START.md)** - Beginner-friendly setup and usage guide
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - How to install in any Salesforce org
+- **[Reports Setup Guide](REPORTS_SETUP_GUIDE.md)** - Creating executive dashboards and reports
 
 ---
 
@@ -324,48 +271,28 @@ Quick reference showing all 12 categories with:
 
 ### Common Issues
 
-#### "Unauthorized endpoint" Error
-**Solution**: Add Remote Site Setting for your Salesforce instance URL
+| Issue | Solution |
+|-------|----------|
+| Tooling API connection failed | Re-authenticate Named Credential |
+| No flows appear | Check browser console, verify Tooling API access |
+| Einstein API error | Verify Einstein is enabled and you have credits |
+| Deployment fails | Update API version in sfdx-project.json |
 
-#### JSON Not Parsing
-**Solution**: Check Einstein response format is set to "JSON"
-
-#### No Flows Showing in Dropdown
-**Solution**: Verify Tooling API Named Credential is authenticated
-
-#### Analysis Stuck in "Processing"
-**Solution**: Check Einstein service limits and quotas
-
-See full troubleshooting guide: [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for more troubleshooting tips.
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how you can help:
+Contributions are welcome! To contribute:
 
-### Reporting Issues
-1. Check existing issues first
-2. Use the issue template
-3. Include screenshots and error messages
-4. Provide org edition and API version
-
-### Submitting Pull Requests
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-### Development Setup
-```bash
-git clone https://github.com/pasumartyshiva/FlowAIAudit.git
-cd FlowAIAudit
-sf org create scratch --definition-file config/project-scratch-def.json --alias flow-audit-dev
-sf project deploy start --source-dir force-app --target-org flow-audit-dev
-```
-
-See: [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines
+For issues or feature requests, please use [GitHub Issues](https://github.com/pasumartyshiva/FlowAIAudit/issues)
 
 ---
 
@@ -380,39 +307,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Salesforce Einstein Team** - For Einstein Prompt Templates
 - **Anthropic** - For Claude AI models
 - **Salesforce Community** - For flow best practices documentation
-- **Contributors** - See [CONTRIBUTORS.md](CONTRIBUTORS.md)
 
 ---
 
 ## 📞 Support
 
-- **Documentation**: [docs/](docs/)
 - **Issues**: [GitHub Issues](https://github.com/pasumartyshiva/FlowAIAudit/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/pasumartyshiva/FlowAIAudit/discussions)
-- **Email**: support@flowaiaudit.com
-
----
-
-## 🗺️ Roadmap
-
-### Version 2.0 (Q2 2026)
-- [ ] Support for Anthropic API direct integration
-- [ ] Historical trend analysis
-- [ ] Flow comparison tool
-- [ ] Custom rule engine
-- [ ] Multi-language support
-
-### Version 2.1 (Q3 2026)
-- [ ] Integration with Salesforce DevOps Center
-- [ ] Slack/Teams notifications
-- [ ] Automated scheduling
-- [ ] Custom branding options
-
-### Future Considerations
-- Process Builder migration recommendations
-- Workflow Rule analysis
-- Apex Trigger best practices analysis
-- Integration with CI/CD pipelines
+- **Documentation**: See README.md, QUICK_START.md, DEPLOYMENT_GUIDE.md
 
 ---
 

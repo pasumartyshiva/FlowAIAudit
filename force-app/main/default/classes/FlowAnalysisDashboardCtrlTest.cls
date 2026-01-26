@@ -32,9 +32,9 @@ private class FlowAnalysisDashboardCtrlTest {
         ));
 
         analyses.add(new Flow_Analysis__c(
-            Flow_API_Name__c = 'PartialFlow',
-            Flow_Label__c = 'Partial Flow',
-            Status__c = 'Partial',
+            Flow_API_Name__c = 'Needs WorkFlow',
+            Flow_Label__c = 'Needs Work Flow',
+            Status__c = 'Needs Work',
             Overall_Score__c = 65,
             Is_Active__c = true,
             Last_Analyzed__c = System.now(),
@@ -72,7 +72,7 @@ private class FlowAnalysisDashboardCtrlTest {
         System.assertNotEquals(null, stats, 'Stats should not be null');
         System.assertEquals(1, stats.get('Pass'), 'Should have 1 pass');
         System.assertEquals(1, stats.get('Fail'), 'Should have 1 fail');
-        System.assertEquals(1, stats.get('Partial'), 'Should have 1 partial');
+        System.assertEquals(1, stats.get('Needs Work'), 'Should have 1 partial');
         System.assertEquals(1, stats.get('Pending'), 'Should have 1 pending');
         System.assertEquals(4, stats.get('Total'), 'Should have 4 active total (excluding inactive)');
     }

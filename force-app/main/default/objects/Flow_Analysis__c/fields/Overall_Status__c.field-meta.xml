@@ -10,7 +10,7 @@
         "PASS",
         IF(
             Overall_Score__c &gt;= 50,
-            "PARTIAL",
+            "NEEDS_WORK",
             "FAIL"
         )
     )

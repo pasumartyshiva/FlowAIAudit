@@ -9,9 +9,9 @@
 The following have been deployed to your Salesforce org:
 
 ### Custom Fields Added:
-1. **Overall_Status__c** (Formula) - Calculates PASS/PARTIAL/FAIL based on score
+1. **Overall_Status__c** (Formula) - Calculates PASS/NEEDS_WORK/FAIL based on score
    - PASS: Score >= 80%
-   - PARTIAL: Score 50-79%
+   - NEEDS_WORK: Score 50-79%
    - FAIL: Score < 50%
 
 2. **Flow_Type__c** (Text) - Stores flow type (Screen, Record-Triggered, etc.)
@@ -273,12 +273,12 @@ LIMIT 10
 
 ### Color Coding:
 - **Green**: Scores 80-100% (PASS)
-- **Yellow**: Scores 50-79% (PARTIAL)
+- **Yellow**: Scores 50-79% (NEEDS_WORK)
 - **Red**: Scores 0-49% (FAIL)
 
 ### Key Metrics to Track:
 1. Average score across all flows
-2. Percentage of flows in each status (PASS/PARTIAL/FAIL)
+2. Percentage of flows in each status (PASS/NEEDS_WORK/FAIL)
 3. Trend line (improving or declining)
 4. Number of flows analyzed per week
 5. Top 5 worst performing flows

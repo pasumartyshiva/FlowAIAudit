@@ -88,7 +88,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
     statusOptions = [
         { label: 'All', value: 'All' },
         { label: 'Pass', value: 'Pass' },
-        { label: 'Partial', value: 'Partial' },
+        { label: 'Needs Work', value: 'Needs Work' },
         { label: 'Fail', value: 'Fail' },
         { label: 'Pending', value: 'Pending' },
         { label: 'Analyzing', value: 'Analyzing' },
@@ -349,7 +349,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
     getStatusColor(status) {
         const statusLower = status.toLowerCase();
         if (statusLower === 'pass' || statusLower === 'compliant') return '#2e844a';
-        if (statusLower === 'partial') return '#f49756';
+        if (statusLower === 'needs work' || statusLower === 'needs_work') return '#f49756';
         return '#c23934'; // Issue/Fail
     }
 
@@ -389,7 +389,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
                 bgColor = '#2e844a';
             } else if (text === 'fail' || text === 'issue') {
                 bgColor = '#c23934';
-            } else if (text === 'partial') {
+            } else if (text === 'needs work' || text === 'needs_work') {
                 bgColor = '#f49756';
             } else if (text === 'pass' || text === 'compliant') {
                 bgColor = '#2e844a';
@@ -655,7 +655,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
         const statusMap = {
             'Pass': 'slds-text-color_success',
             'Fail': 'slds-text-color_error',
-            'Partial': 'slds-text-color_warning',
+            'Needs Work': 'slds-text-color_warning',
             'Pending': 'slds-text-color_weak',
             'Analyzing': 'slds-text-color_default',
             'Error': 'slds-text-color_error'
@@ -690,8 +690,8 @@ export default class FlowAnalysisDashboard extends LightningElement {
         return this.summaryStats.Fail || 0;
     }
 
-    get partialCount() {
-        return this.summaryStats.Partial || 0;
+    get needsWorkCount() {
+        return this.summaryStats['Needs Work'] || 0;
     }
 
     get pendingCount() {

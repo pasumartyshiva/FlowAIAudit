@@ -12,7 +12,7 @@ public with sharing class FlowAnalysisDashboardController {
     public static Map<String, Integer> getSummaryStats() {
         Map<String, Integer> stats = new Map<String, Integer>{
             'Pass' => 0,
-            'Partial' => 0,
+            'Needs Work' => 0,
             'Fail' => 0,
             'Pending' => 0,
             'Analyzing' => 0,
@@ -46,7 +46,7 @@ public with sharing class FlowAnalysisDashboardController {
 
     /**
      * @description Gets all flow analysis records with optional filtering
-     * @param statusFilter Optional status to filter by (Pass, Fail, Partial, etc.)
+     * @param statusFilter Optional status to filter by (Pass, Fail, Needs Work, etc.)
      * @param searchTerm Optional search term for flow name
      * @return List of flow analysis wrapper objects
      */

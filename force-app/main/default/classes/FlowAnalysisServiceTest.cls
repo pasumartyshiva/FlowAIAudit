@@ -176,7 +176,7 @@ private class FlowAnalysisServiceTest {
         Test.stopTest();
 
         // Status should be one of the valid values
-        Set<String> validStatuses = new Set<String>{'Pass', 'Partial', 'Fail', 'Analyzing', 'Error'};
+        Set<String> validStatuses = new Set<String>{'Pass', 'Needs Work', 'Fail', 'Analyzing', 'Error'};
         System.assert(
             validStatuses.contains(analysis.Status__c),
             'Status should be valid: ' + analysis.Status__c

@@ -93,12 +93,12 @@ public with sharing class ExternalLLMService {
         prompt += '# OUTPUT FORMAT\n';
         prompt += 'Return your analysis as a valid JSON object with this structure:\n';
         prompt += '{\n';
-        prompt += '  "status": "Pass|Partial|Fail",\n';
+        prompt += '  "status": "Pass|Needs Work|Fail",\n';
         prompt += '  "score": 85,\n';
         prompt += '  "categories": [\n';
         prompt += '    {\n';
         prompt += '      "name": "Category Name",\n';
-        prompt += '      "status": "Compliant|Partial|Issue",\n';
+        prompt += '      "status": "Compliant|Needs Work|Issue",\n';
         prompt += '      "findings": "Brief summary of findings"\n';
         prompt += '    }\n';
         prompt += '  ],\n';

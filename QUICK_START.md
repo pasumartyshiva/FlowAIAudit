@@ -370,11 +370,11 @@ Once you've analyzed some flows, create Salesforce reports for leadership visibi
    - **Group By**: Overall Status
    - **Filters**: Status equals Completed
    - **Columns**: Flow Label, Overall Score, Status, Last Modified Date
-   - **Chart**: Horizontal Bar (shows PASS/PARTIAL/FAIL distribution)
+   - **Chart**: Horizontal Bar (shows PASS/NEEDS_WORK/FAIL distribution)
    - **Save**: Name it "Flow Analysis Summary"
 
 3. **View Your Report**:
-   - See breakdown by PASS (80-100%), PARTIAL (50-79%), FAIL (0-49%)
+   - See breakdown by PASS (80-100%), NEEDS_WORK (50-79%), FAIL (0-49%)
    - Bar chart shows visual distribution
    - Export to Excel if needed
 
@@ -446,7 +446,7 @@ Purpose: Measure improvement initiatives
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                        75%                               │
-│                      PARTIAL                             │
+│                      NEEDS_WORK                             │
 ├─────────────────────────────────────────────────────────┤
 │ 📋 1. Documentation, Naming, and Clarity                │
 │ Status: COMPLIANT ✅                                     │
@@ -454,7 +454,7 @@ Purpose: Measure improvement initiatives
 │ Recommendation: Continue current practices              │
 ├─────────────────────────────────────────────────────────┤
 │ 🧩 2. Logic Modularity & Reuse                          │
-│ Status: PARTIAL ⚠️                                      │
+│ Status: NEEDS_WORK ⚠️                                      │
 │ ... [10 more categories]                                │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -619,12 +619,12 @@ Purpose: Measure improvement initiatives
 
 ### Score Ranges:
 - **80-100% (PASS)** 🟢: Excellent! Minor improvements only
-- **50-79% (PARTIAL)** 🟡: Good, but needs attention
+- **50-79% (NEEDS_WORK)** 🟡: Good, but needs attention
 - **0-49% (FAIL)** 🔴: Requires significant improvements
 
 ### Status Types:
 - **COMPLIANT** ✅: Meets best practices
-- **PARTIAL** ⚠️: Some improvements needed
+- **NEEDS_WORK** ⚠️: Some improvements needed
 - **ISSUE** ❌: Requires immediate attention
 
 ### 12 Categories Explained:
@@ -655,7 +655,7 @@ Purpose: Measure improvement initiatives
 
 2. **Prioritize Fixes**:
    - Focus on FAIL status first
-   - Then address PARTIAL
+   - Then address NEEDS_WORK
    - PASS flows need monitoring only
 
 3. **Regular Audits**:

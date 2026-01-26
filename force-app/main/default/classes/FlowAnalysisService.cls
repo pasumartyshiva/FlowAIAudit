@@ -249,7 +249,7 @@ public with sharing class FlowAnalysisService {
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'Error parsing AI response: ' + e.getMessage());
             analysis.Analysis_Report__c = convertTextToHtml(aiResponse); // Store as HTML
-            analysis.Status__c = 'Partial'; // Default to partial if parsing fails
+            analysis.Status__c = 'Needs Work'; // Default to partial if parsing fails
         }
     }
 
@@ -270,7 +270,7 @@ public with sharing class FlowAnalysisService {
      */
     private static String calculateStatusFromCategories(Map<String, Object> jsonResponse) {
         List<Object> categories = (List<Object>) jsonResponse.get('categories');
-        if (categories == null || categories.isEmpty()) return 'Partial';
+        if (categories == null || categories.isEmpty()) return 'Needs Work';
 
         Integer issueCount = 0;
         Integer compliantCount = 0;
@@ -288,8 +288,8 @@ public with sharing class FlowAnalysisService {
         if (issueCount > categories.size() / 2) return 'Fail';
         // If more than 80% are compliant, overall is Pass
         if (compliantCount >= categories.size() * 0.8) return 'Pass';
-        // Otherwise Partial
-        return 'Partial';
+        // Otherwise Needs Work
+        return 'Needs Work';
     }
 
     /**
@@ -306,10 +306,10 @@ public with sharing class FlowAnalysisService {
             Map<String, Object> category = (Map<String, Object>) catObj;
             String status = (String) category.get('status');
             if (status == 'Compliant') compliantCount++;
-            else if (status == 'Partial') partialCount++;
+            else if (status == 'Needs Work') partialCount++;
         }
 
-        // Compliant = 100%, Partial = 50%, Issue = 0%
+        // Compliant = 100%, Needs Work = 50%, Issue = 0%
         Decimal totalPoints = (compliantCount * 100) + (partialCount * 50);
         return (totalPoints / categories.size()).setScale(0);
     }
@@ -334,7 +334,7 @@ public with sharing class FlowAnalysisService {
         // Heuristic based on counts
         if (issueCount > 5) return 'Fail';
         if (compliantCount > 8) return 'Pass';
-        return 'Partial';
+        return 'Needs Work';
     }
 
     /**
@@ -567,7 +567,7 @@ public with sharing class FlowAnalysisService {
             '• Ensure review is clear, actionable, and prioritized for user implementation.\n\n' +
 
             'Assessment Output:\n' +
-            '• For each area, state "Compliant," "Partial," or "Issue," with explanation and a fix.\n' +
+            '• For each area, state "Compliant," "Needs Work," or "Issue," with explanation and a fix.\n' +
             '• For each of the 12 points, first state your reasoning in a step-by-step manner based on the metadata, and then provide the \'Status\', \'Explanation\', and \'Recommendation\'.\n' +
             '• After completing the detailed analysis, provide a final summary formatted as a markdown table. The table must have exactly three columns: \'Area\', \'Status\', and \'Fix/Recommendation\'. Populate the table with one row for each of the primary assessment categories (Documentation, Modularity, Bulkification, etc.), providing a concise, one-sentence summary of the findings and recommendation for each.\n\n' +
 
