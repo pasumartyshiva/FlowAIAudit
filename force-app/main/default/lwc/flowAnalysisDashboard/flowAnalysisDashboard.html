@@ -503,6 +503,142 @@
 
                 <!-- Modal Body -->
                 <div class="slds-modal__content slds-p-around_medium">
+
+                    <!-- Prerequisites Alert -->
+                    <div class="slds-box slds-theme_warning slds-m-bottom_medium" style="border-left: 4px solid #fe9339;">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <lightning-icon icon-name="utility:warning" size="x-small"></lightning-icon>
+                            ⚠️ One-Time Setup Required
+                        </h3>
+                        <p class="slds-text-body_regular">
+                            <strong>Before using this dashboard</strong>, you must complete the Tooling API and Einstein configuration below.
+                            This only needs to be done once per org. Setup takes approximately 15-20 minutes.
+                        </p>
+                    </div>
+
+                    <!-- Setup Instructions -->
+                    <div class="slds-box slds-m-bottom_medium" style="background: #fef8e8; border-left: 4px solid #0176d3;">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <lightning-icon icon-name="utility:setup" size="x-small"></lightning-icon>
+                            🔧 Required Setup Steps
+                        </h3>
+
+                        <!-- Tooling API Setup -->
+                        <div class="slds-m-bottom_medium">
+                            <h4 class="slds-text-heading_x-small slds-m-bottom_small" style="color: #0176d3;">
+                                A. Tooling API Setup (10 minutes)
+                            </h4>
+                            <p class="slds-text-body_small slds-m-bottom_x-small"><strong>Why needed:</strong> Allows the dashboard to fetch flow metadata for analysis.</p>
+
+                            <ol class="slds-list_ordered slds-m-left_large">
+                                <li class="slds-m-bottom_small">
+                                    <strong>Create Connected App:</strong>
+                                    <ul class="slds-list_dotted slds-m-left_medium">
+                                        <li>Setup → Apps → App Manager → New Connected App</li>
+                                        <li>Name: <code>Tooling_API_Access</code></li>
+                                        <li>Enable OAuth Settings ✅</li>
+                                        <li>Callback URL: <code>https://YOUR_DOMAIN.my.salesforce.com/services/authcallback/ToolingAPILoopback</code></li>
+                                        <li>OAuth Scopes: api, refresh_token, id</li>
+                                        <li>Save and copy Consumer Key & Secret</li>
+                                    </ul>
+                                </li>
+                                <li class="slds-m-bottom_small">
+                                    <strong>Create Auth Provider:</strong>
+                                    <ul class="slds-list_dotted slds-m-left_medium">
+                                        <li>Setup → Identity → Auth. Providers → New</li>
+                                        <li>Provider Type: Salesforce</li>
+                                        <li>Name: <code>ToolingAPILoopback</code></li>
+                                        <li>Paste Consumer Key & Secret from step 1</li>
+                                        <li>Default Scopes: <code>api refresh_token</code></li>
+                                    </ul>
+                                </li>
+                                <li class="slds-m-bottom_small">
+                                    <strong>Create Named Credential:</strong>
+                                    <ul class="slds-list_dotted slds-m-left_medium">
+                                        <li>Setup → Security → Named Credentials → New</li>
+                                        <li>Label & Name: <code>Salesforce_Tooling_API</code></li>
+                                        <li>URL: <code>https://YOUR_DOMAIN.my.salesforce.com</code></li>
+                                        <li>Identity Type: Named Principal</li>
+                                        <li>Auth Protocol: OAuth 2.0</li>
+                                        <li>Auth Provider: ToolingAPILoopback</li>
+                                        <li>Check "Start Authentication Flow on Save" ✅</li>
+                                        <li>Save → Click Allow → Verify "Authenticated" status</li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <strong>Verify Setup:</strong>
+                                    <ul class="slds-list_dotted slds-m-left_medium">
+                                        <li>Open Developer Console</li>
+                                        <li>Run: <code>HttpRequest req = new HttpRequest(); req.setEndpoint('callout:Salesforce_Tooling_API/services/data/v65.0/tooling/query?q=SELECT+Id+FROM+Flow+LIMIT+1'); req.setMethod('GET'); Http http = new Http(); HttpResponse res = http.send(req); System.debug('Status: ' + res.getStatusCode());</code></li>
+                                        <li>Expected: Status: 200 ✅</li>
+                                    </ul>
+                                </li>
+                            </ol>
+                        </div>
+
+                        <!-- Einstein Setup -->
+                        <div class="slds-m-bottom_medium">
+                            <h4 class="slds-text-heading_x-small slds-m-bottom_small" style="color: #0176d3;">
+                                B. Einstein Configuration (5 minutes)
+                            </h4>
+                            <p class="slds-text-body_small slds-m-bottom_x-small"><strong>Why needed:</strong> Powers the AI analysis of your flows.</p>
+
+                            <ol class="slds-list_ordered slds-m-left_large">
+                                <li class="slds-m-bottom_small">
+                                    <strong>Activate Prompt Template:</strong>
+                                    <ul class="slds-list_dotted slds-m-left_medium">
+                                        <li>Setup → Einstein → Prompt Templates</li>
+                                        <li>Find: <code>Flow_Best_Practices_Analysis</code></li>
+                                        <li>Click Edit → Verify settings:</li>
+                                        <li>&nbsp;&nbsp;- Model: Claude Sonnet 3.7 or 4.5</li>
+                                        <li>&nbsp;&nbsp;- Response Format: JSON</li>
+                                        <li>&nbsp;&nbsp;- Prompt mentions "12 categories"</li>
+                                        <li>Click Save → Click Activate ✅</li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <strong>Verify Einstein License:</strong>
+                                    <ul class="slds-list_dotted slds-m-left_medium">
+                                        <li>Ensure you have Einstein 1 license</li>
+                                        <li>Check: Setup → Company Information → Features</li>
+                                        <li>Must see "Prompt Builder" enabled</li>
+                                    </ul>
+                                </li>
+                            </ol>
+                        </div>
+
+                        <!-- Remote Site Setting -->
+                        <div>
+                            <h4 class="slds-text-heading_x-small slds-m-bottom_small" style="color: #0176d3;">
+                                C. Remote Site Setting (Optional - if needed)
+                            </h4>
+                            <p class="slds-text-body_small slds-m-bottom_x-small">Only required if you see "Unauthorized endpoint" errors.</p>
+
+                            <ol class="slds-list_ordered slds-m-left_large">
+                                <li>
+                                    <ul class="slds-list_dotted slds-m-left_medium">
+                                        <li>Setup → Security → Remote Site Settings</li>
+                                        <li>New Remote Site</li>
+                                        <li>Name: <code>Salesforce_Instance</code></li>
+                                        <li>URL: <code>https://YOUR_DOMAIN.my.salesforce.com</code></li>
+                                        <li>Active: ✅ Checked</li>
+                                    </ul>
+                                </li>
+                            </ol>
+                        </div>
+
+                        <!-- Help Link -->
+                        <div class="slds-m-top_medium slds-text-align_center">
+                            <p class="slds-text-body_small">
+                                <lightning-icon icon-name="utility:help" size="xx-small"></lightning-icon>
+                                Need detailed setup instructions? See:
+                                <a href="https://github.com/pasumartyshiva/FlowAIAudit/blob/main/docs/TOOLING_API_SETUP.md" target="_blank">Complete Setup Guide</a>
+                            </p>
+                        </div>
+                    </div>
+
+                    <hr class="slds-m-vertical_medium" />
+
                     <!-- Step 1 -->
                     <div class="slds-box slds-theme_shade slds-m-bottom_medium">
                         <h3 class="slds-text-heading_small slds-m-bottom_small">
@@ -611,10 +747,10 @@
                     </div>
 
                     <!-- Tips -->
-                    <div class="slds-box" style="background: #f3f2f2;">
+                    <div class="slds-box slds-m-bottom_medium" style="background: #f3f2f2;">
                         <h3 class="slds-text-heading_small slds-m-bottom_small">
                             <lightning-icon icon-name="utility:announcement" size="x-small"></lightning-icon>
-                            Pro Tips
+                            💡 Pro Tips
                         </h3>
                         <ul class="slds-list_dotted">
                             <li>Run analysis during off-peak hours for faster results</li>
@@ -622,7 +758,67 @@
                             <li>Use filters to focus on flows that need attention (Fail/Partial)</li>
                             <li>When flows are updated, use "Update Flow" to clear old analysis and re-analyze</li>
                             <li>Export PDFs for audit trails and compliance documentation</li>
+                            <li>Start with 5-10 simple flows before analyzing complex ones</li>
                         </ul>
+                    </div>
+
+                    <!-- Troubleshooting -->
+                    <div class="slds-box" style="background: #fee; border-left: 4px solid #c23934;">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <lightning-icon icon-name="utility:error" size="x-small"></lightning-icon>
+                            🔧 Common Issues & Solutions
+                        </h3>
+
+                        <div class="slds-m-bottom_small">
+                            <p class="slds-text-body_small"><strong>❌ "No flows showing in dropdown"</strong></p>
+                            <ul class="slds-list_dotted slds-m-left_medium">
+                                <li>Check Named Credential status: Setup → Named Credentials → Verify "Authenticated"</li>
+                                <li>Re-authenticate if needed: Edit → Check "Start Auth Flow" → Save</li>
+                                <li>Verify you have active flows: Setup → Flows</li>
+                            </ul>
+                        </div>
+
+                        <div class="slds-m-bottom_small">
+                            <p class="slds-text-body_small"><strong>❌ "Analysis stuck at Processing"</strong></p>
+                            <ul class="slds-list_dotted slds-m-left_medium">
+                                <li>Check Einstein limits: Setup → Einstein → Usage</li>
+                                <li>Verify prompt template is Active: Setup → Einstein → Prompt Templates</li>
+                                <li>Check Debug Logs for errors: Setup → Debug Logs</li>
+                            </ul>
+                        </div>
+
+                        <div class="slds-m-bottom_small">
+                            <p class="slds-text-body_small"><strong>❌ "Unauthorized endpoint" error</strong></p>
+                            <ul class="slds-list_dotted slds-m-left_medium">
+                                <li>Add Remote Site Setting (see Setup section C above)</li>
+                                <li>Setup → Security → Remote Site Settings → Add your org URL</li>
+                            </ul>
+                        </div>
+
+                        <div class="slds-m-bottom_small">
+                            <p class="slds-text-body_small"><strong>❌ "Insufficient Privileges"</strong></p>
+                            <ul class="slds-list_dotted slds-m-left_medium">
+                                <li>Assign permission set via CLI: <code>sf org assign permset --name Flow_AI_Audit_Dashboard_Access</code></li>
+                                <li>Or manually: Setup → Permission Sets → Assign to your user</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <p class="slds-text-body_small"><strong>❌ "PDF export not working"</strong></p>
+                            <ul class="slds-list_dotted slds-m-left_medium">
+                                <li>Check pop-up blocker settings in your browser</li>
+                                <li>Allow pop-ups for your Salesforce domain</li>
+                                <li>Try Chrome browser (recommended)</li>
+                            </ul>
+                        </div>
+
+                        <div class="slds-m-top_small slds-text-align_center">
+                            <p class="slds-text-body_small">
+                                Still having issues?
+                                <a href="https://github.com/pasumartyshiva/FlowAIAudit/issues" target="_blank">Report on GitHub</a> |
+                                <a href="https://github.com/pasumartyshiva/FlowAIAudit/blob/main/QUICK_START.md" target="_blank">Full Quick Start Guide</a>
+                            </p>
+                        </div>
                     </div>
                 </div>
 
