@@ -7,7 +7,8 @@
 3. [Tooling API Setup](#-tooling-api-setup-10-minutes)
 4. [Einstein Configuration](#-einstein-configuration-5-minutes)
 5. [First Flow Analysis](#-first-flow-analysis-2-minutes)
-6. [Troubleshooting](#-troubleshooting)
+6. [Executive Reports Setup](#-executive-reports-setup-optional-5-minutes)
+7. [Troubleshooting](#-troubleshooting)
 
 ---
 
@@ -303,6 +304,126 @@ try {
 3. Click **"Analyze Selected Flows"**
 4. Watch progress in the table
 5. View individual results as they complete
+
+### Step 4: Create Executive Reports (Optional - 5 minutes)
+
+For leadership visibility, create Salesforce reports:
+
+1. **Go to Reports Tab**:
+   - Click Reports tab in Salesforce
+   - Click **"New Report"**
+
+2. **Select Report Type**:
+   - Search for **"Flow Analysis Reports"**
+   - Click Continue
+
+3. **Create Your First Report** (Flow Analysis Summary):
+   ```
+   Format: Summary Report
+   Group By: Overall Status
+   Filters: Status = Completed
+   Columns: Flow Label, Overall Score, Status, Last Modified Date
+   Add Chart: Horizontal Bar (Status vs Count)
+   ```
+
+4. **Save Report**:
+   - Name: "Flow Analysis Summary"
+   - Folder: Create "Flow Analysis Reports" (Public)
+   - Click Save
+
+5. **Create More Reports** (Optional):
+   - **Flows Needing Attention**: Flows scoring < 80%
+   - **Flow Score Trends**: Track improvements over time
+   - See detailed instructions in **REPORTS_SETUP_GUIDE.md**
+
+6. **Build Executive Dashboard** (Optional):
+   - Dashboards tab → New Dashboard
+   - Add your reports as components
+   - Share with leadership
+
+**Why Use Reports?**
+- ✅ Real-time data (always current)
+- ✅ Schedule automated emails
+- ✅ Executive dashboards
+- ✅ Export to Excel/PDF anytime
+- ✅ Mobile access via Salesforce app
+- ✅ Track trends and KPIs
+
+**📘 Detailed Guide**: See **REPORTS_SETUP_GUIDE.md** for complete step-by-step instructions, sample SOQL queries, and dashboard design tips.
+
+---
+
+## 📊 Executive Reports Setup (Optional - 5 minutes)
+
+Once you've analyzed some flows, create Salesforce reports for leadership visibility.
+
+### Quick Report Creation
+
+1. **Navigate to Reports**:
+   - Click **Reports** tab
+   - Click **"New Report"**
+   - Search for **"Flow Analysis Reports"**
+   - Click **Continue**
+
+2. **Build Your First Report** (Flow Analysis Summary):
+   - **Format**: Summary Report
+   - **Group By**: Overall Status
+   - **Filters**: Status equals Completed
+   - **Columns**: Flow Label, Overall Score, Status, Last Modified Date
+   - **Chart**: Horizontal Bar (shows PASS/PARTIAL/FAIL distribution)
+   - **Save**: Name it "Flow Analysis Summary"
+
+3. **View Your Report**:
+   - See breakdown by PASS (80-100%), PARTIAL (50-79%), FAIL (0-49%)
+   - Bar chart shows visual distribution
+   - Export to Excel if needed
+
+### Additional Reports You Can Create
+
+**Flows Needing Attention** (Priority List):
+```
+Format: Tabular
+Filters: Status = Completed AND Overall Score < 80
+Sort: Overall Score (Ascending - worst first)
+Purpose: Focus on flows that need immediate work
+```
+
+**Flow Score Trends** (Track Improvements):
+```
+Format: Summary with Line Chart
+Group By: Created Date (by Week)
+Chart: Average score over time
+Purpose: Measure improvement initiatives
+```
+
+### Building an Executive Dashboard
+
+1. Go to **Dashboards** tab → **New Dashboard**
+2. Add components:
+   - Flow Analysis Summary (Bar Chart)
+   - Flow Score Trends (Line Chart)
+   - Flows Needing Attention (Table)
+3. Set refresh schedule (daily/weekly)
+4. Share with executives
+
+### Benefits for Leadership
+
+| Capability | Benefit |
+|------------|---------|
+| **Real-Time Data** | Always see current state |
+| **Trend Analysis** | Track improvements over time |
+| **KPI Tracking** | Use average score as team metric |
+| **Automated Delivery** | Schedule weekly email reports |
+| **Export Flexibility** | Excel/PDF for presentations |
+| **Mobile Access** | View on Salesforce mobile app |
+
+📘 **Full Documentation**: See **REPORTS_SETUP_GUIDE.md** for:
+- Step-by-step instructions for all reports
+- Sample SOQL queries
+- Dashboard layout recommendations
+- Export instructions
+- 7 additional report ideas
+- Visualization tips and best practices
 
 ---
 
@@ -678,6 +799,18 @@ Use this checklist to ensure you've completed everything:
 - [ ] PDF downloads automatically
 - [ ] PDF contains all analysis details
 - [ ] PDF is properly formatted
+
+### Executive Reports (Optional) ☐
+- [ ] Navigated to Reports tab
+- [ ] Created new report using "Flow Analysis Reports" type
+- [ ] Created "Flow Analysis Summary" report
+- [ ] Added chart to report
+- [ ] Saved report to public folder
+- [ ] Report displays data correctly
+- [ ] Exported report to Excel (tested)
+- [ ] Created additional reports (optional)
+- [ ] Built executive dashboard (optional)
+- [ ] Shared with leadership (optional)
 
 ### Verification ☐
 - [ ] All tests passing (check Debug Logs)
