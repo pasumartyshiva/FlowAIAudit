@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Overall_Status__c</fullName>
+    <externalId>false</externalId>
+    <formula>IF(
+    ISBLANK(Overall_Score__c),
+    "Not Analyzed",
+    IF(
+        Overall_Score__c &gt;= 80,
+        "PASS",
+        IF(
+            Overall_Score__c &gt;= 50,
+            "PARTIAL",
+            "FAIL"
+        )
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Overall Status</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

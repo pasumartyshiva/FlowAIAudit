@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+    <columns>
+        <field>Flow_Analysis__c.Flow_Label__c</field>
+    </columns>
+    <columns>
+        <field>Flow_Analysis__c.Overall_Score__c</field>
+    </columns>
+    <columns>
+        <field>Flow_Analysis__c.Overall_Status__c</field>
+    </columns>
+    <columns>
+        <field>Flow_Analysis__c.Flow_Type__c</field>
+    </columns>
+    <columns>
+        <field>Flow_Analysis__c.LastModifiedDate</field>
+    </columns>
+    <description>Flows with scores below 80% that need immediate attention - prioritized by lowest score</description>
+    <filter>
+        <booleanFilter>1 AND 2</booleanFilter>
+        <criteriaItems>
+            <column>Flow_Analysis__c.Status__c</column>
+            <columnToColumn>false</columnToColumn>
+            <isUnlocked>true</isUnlocked>
+            <operator>equals</operator>
+            <value>Completed</value>
+        </criteriaItems>
+        <criteriaItems>
+            <column>Flow_Analysis__c.Overall_Score__c</column>
+            <columnToColumn>false</columnToColumn>
+            <isUnlocked>true</isUnlocked>
+            <operator>lessThan</operator>
+            <value>80</value>
+        </criteriaItems>
+    </filter>
+    <format>Tabular</format>
+    <name>Flows Needing Attention</name>
+    <params>
+        <name>co</name>
+        <value>1</value>
+    </params>
+    <reportType>Flow_Analysis_Report</reportType>
+    <scope>organization</scope>
+    <showDetails>true</showDetails>
+    <showGrandTotal>true</showGrandTotal>
+    <showSubTotals>true</showSubTotals>
+    <sortColumn>Flow_Analysis__c.Overall_Score__c</sortColumn>
+    <sortOrder>Asc</sortOrder>
+    <timeFrameFilter>
+        <dateColumn>Flow_Analysis__c.CreatedDate</dateColumn>
+        <interval>INTERVAL_LAST90</interval>
+    </timeFrameFilter>
+</Report>
