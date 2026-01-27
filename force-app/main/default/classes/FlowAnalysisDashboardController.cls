@@ -39,7 +39,6 @@ public with sharing class FlowAnalysisDashboardController {
             }
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error getting summary stats: ' + e.getMessage());
         }
 
         return stats;
@@ -90,7 +89,6 @@ public with sharing class FlowAnalysisDashboardController {
             }
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error getting flow analyses: ' + e.getMessage());
             throw new AuraHandledException('Error retrieving flow analyses: ' + e.getMessage());
         }
 
@@ -118,7 +116,6 @@ public with sharing class FlowAnalysisDashboardController {
             return new FlowAnalysisWrapper(analysis);
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error getting flow analysis detail: ' + e.getMessage());
             throw new AuraHandledException('Error retrieving flow analysis: ' + e.getMessage());
         }
     }
@@ -206,7 +203,6 @@ public with sharing class FlowAnalysisDashboardController {
             return message;
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error syncing flow list: ' + e.getMessage());
             throw new AuraHandledException('Error syncing flow list: ' + e.getMessage());
         }
     }
@@ -282,7 +278,6 @@ public with sharing class FlowAnalysisDashboardController {
             }
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error updating flow metadata: ' + e.getMessage());
             throw new AuraHandledException('Error updating flow: ' + e.getMessage());
         }
     }
@@ -385,7 +380,6 @@ public with sharing class FlowAnalysisDashboardController {
             return message;
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error refreshing flow versions: ' + e.getMessage());
             throw new AuraHandledException('Error refreshing flows: ' + e.getMessage());
         }
     }
@@ -420,7 +414,6 @@ public with sharing class FlowAnalysisDashboardController {
             return count + ' record(s) deleted successfully';
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error deleting selected analyses: ' + e.getMessage());
             throw new AuraHandledException('Error deleting records: ' + e.getMessage());
         }
     }
@@ -449,7 +442,6 @@ public with sharing class FlowAnalysisDashboardController {
             return 'Successfully deleted ' + count + ' flow analysis record(s)';
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error deleting analyses: ' + e.getMessage());
             throw new AuraHandledException('Error deleting analyses: ' + e.getMessage());
         }
     }
@@ -514,7 +506,6 @@ public with sharing class FlowAnalysisDashboardController {
             return 'Flow analyzed successfully';
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error re-analyzing flow: ' + e.getMessage());
 
             // Provide helpful error messages
             String errorMsg = e.getMessage();
@@ -562,7 +553,6 @@ public with sharing class FlowAnalysisDashboardController {
             Http http = new Http();
             HttpResponse res = http.send(req);
 
-            System.debug('Tooling API Response Code: ' + res.getStatusCode());
 
             if (res.getStatusCode() == 200) {
                 Map<String, Object> response = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
@@ -596,19 +586,15 @@ public with sharing class FlowAnalysisDashboardController {
                     result.label = label;
                     result.version = versionNumber != null ? Integer.valueOf(String.valueOf(versionNumber)) : 1;
 
-                    System.debug('Successfully fetched flow metadata: ' + flowApiName + ', Label: ' + label);
                     return result;
                 } else {
-                    System.debug('No flow records found for: ' + flowApiName + ' (possibly managed package flow)');
                     throw new AuraHandledException('Flow not found or not accessible. This may be a managed package flow.');
                 }
             } else {
-                System.debug('Tooling API Error: ' + res.getStatus() + ' - ' + res.getBody());
                 throw new AuraHandledException('Tooling API error: ' + res.getStatus());
             }
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error fetching flow metadata with Named Credential: ' + e.getMessage());
             throw e;
         }
     }
@@ -642,7 +628,6 @@ public with sharing class FlowAnalysisDashboardController {
             return !runningJobs.isEmpty();
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error checking batch status: ' + e.getMessage());
             return false;
         }
     }
@@ -684,7 +669,6 @@ public with sharing class FlowAnalysisDashboardController {
             }
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error getting batch progress: ' + e.getMessage());
         }
 
         return progress;

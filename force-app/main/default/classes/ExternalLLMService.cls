@@ -20,7 +20,6 @@ public with sharing class ExternalLLMService {
             LLM_Configuration__mdt config = getActiveConfiguration();
             return config != null;
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error checking LLM configuration: ' + e.getMessage());
             return false;
         }
     }
@@ -32,7 +31,6 @@ public with sharing class ExternalLLMService {
      * @return The LLM response as a string
      */
     public static String generateCompletion(String flowMetadataXml, String assessmentFramework) {
-        System.debug(LoggingLevel.INFO, 'Starting External LLM completion request');
 
         // Get active configuration
         LLM_Configuration__mdt config = getActiveConfiguration();
@@ -40,7 +38,6 @@ public with sharing class ExternalLLMService {
             throw new ExternalLLMException('No active LLM configuration found. Please configure an LLM provider in Setup > Custom Metadata Types > LLM Configuration');
         }
 
-        System.debug(LoggingLevel.INFO, 'Using provider: ' + config.Provider_Name__c + ' with model: ' + config.Model_Name__c);
 
         // Build the complete prompt
         String prompt = buildPrompt(flowMetadataXml, assessmentFramework);
@@ -59,7 +56,6 @@ public with sharing class ExternalLLMService {
             throw new ExternalLLMException('Unsupported provider: ' + config.Provider_Name__c);
         }
 
-        System.debug(LoggingLevel.INFO, 'External LLM completion completed successfully');
         return response;
     }
 
@@ -126,7 +122,6 @@ public with sharing class ExternalLLMService {
      * @return The API response text
      */
     private static String callGoogleGemini(String prompt, LLM_Configuration__mdt config) {
-        System.debug(LoggingLevel.INFO, 'Calling Google Gemini API');
 
         // Validate API Key
         if (String.isBlank(config.API_Key__c)) {
@@ -162,7 +157,6 @@ public with sharing class ExternalLLMService {
         Http http = new Http();
         HttpResponse res = http.send(req);
 
-        System.debug(LoggingLevel.INFO, 'Google Gemini API response status: ' + res.getStatusCode());
 
         if (res.getStatusCode() != 200) {
             throw new ExternalLLMException('Google Gemini API error: ' + res.getStatusCode() + ' - ' + res.getBody());
@@ -191,7 +185,6 @@ public with sharing class ExternalLLMService {
      * @return The API response text
      */
     private static String callAnthropicClaude(String prompt, LLM_Configuration__mdt config) {
-        System.debug(LoggingLevel.INFO, 'Calling Anthropic Claude API');
 
         // Validate API Key
         if (String.isBlank(config.API_Key__c)) {
@@ -229,7 +222,6 @@ public with sharing class ExternalLLMService {
         Http http = new Http();
         HttpResponse res = http.send(req);
 
-        System.debug(LoggingLevel.INFO, 'Anthropic Claude API response status: ' + res.getStatusCode());
 
         if (res.getStatusCode() != 200) {
             throw new ExternalLLMException('Anthropic Claude API error: ' + res.getStatusCode() + ' - ' + res.getBody());
@@ -264,7 +256,6 @@ public with sharing class ExternalLLMService {
      * @return The API response text
      */
     private static String callHuggingFace(String prompt, LLM_Configuration__mdt config) {
-        System.debug(LoggingLevel.INFO, 'Calling Hugging Face Router API (OpenAI-compatible)');
 
         // Validate API Key
         if (String.isBlank(config.API_Key__c)) {
@@ -294,7 +285,6 @@ public with sharing class ExternalLLMService {
         Http http = new Http();
         HttpResponse res = http.send(req);
 
-        System.debug(LoggingLevel.INFO, 'Hugging Face Router API response status: ' + res.getStatusCode());
 
         if (res.getStatusCode() != 200) {
             throw new ExternalLLMException('Hugging Face API error: ' + res.getStatusCode() + ' - ' + res.getBody());

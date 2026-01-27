@@ -44,7 +44,6 @@ public class FlowAnalysisQueueable implements Queueable, Database.AllowsCallouts
             }
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error in FlowAnalysisQueueable: ' + e.getMessage());
             createErrorAnalysis('Error: ' + e.getMessage());
         }
 
@@ -71,7 +70,6 @@ public class FlowAnalysisQueueable implements Queueable, Database.AllowsCallouts
             upsert analysis Flow_Analysis__c.Flow_API_Name__c;
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error processing flow: ' + e.getMessage());
             createErrorAnalysis('Error processing flow: ' + e.getMessage());
         }
     }
@@ -120,7 +118,6 @@ public class FlowAnalysisQueueable implements Queueable, Database.AllowsCallouts
             return null;
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error fetching flow metadata: ' + e.getMessage());
             return null;
         }
     }
@@ -141,7 +138,6 @@ public class FlowAnalysisQueueable implements Queueable, Database.AllowsCallouts
         try {
             upsert errorAnalysis Flow_Analysis__c.Flow_API_Name__c;
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error creating error analysis: ' + e.getMessage());
         }
     }
 

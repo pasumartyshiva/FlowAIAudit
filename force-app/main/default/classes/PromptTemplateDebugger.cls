@@ -50,7 +50,6 @@ public class PromptTemplateDebugger {
      * List all available prompt templates in the org
      */
     public static void listAvailableTemplates() {
-        System.debug('=== LISTING AVAILABLE PROMPT TEMPLATES ===');
 
         try {
             // Query for prompt templates via Tooling API would require async,
@@ -60,16 +59,11 @@ public class PromptTemplateDebugger {
                 'Flow_Evaluator_V3'
             };
 
-            System.debug('Known Prompt Templates in this org:');
             for (String template : knownTemplates) {
-                System.debug('  - ' + template);
             }
 
-            System.debug('\nTo test a template, run:');
-            System.debug('PromptTemplateDebugger.testTemplate(\'Flow_Evaluator_V3\', \'<your xml>\');');
 
         } catch (Exception e) {
-            System.debug('ERROR listing templates: ' + e.getMessage());
         }
     }
 
@@ -426,7 +420,6 @@ public class PromptTemplateDebugger {
      * Logging utility
      */
     private void log(String message) {
-        System.debug(message);
         if (verboseLogging) {
             debugMessages.add(message);
         }

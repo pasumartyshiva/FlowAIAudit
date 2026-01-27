@@ -45,7 +45,6 @@ public with sharing class FlowAnalysisService {
         } catch (Exception e) {
             analysis.Status__c = 'Error';
             analysis.Analysis_Report__c = 'Error during analysis: ' + e.getMessage();
-            System.debug(LoggingLevel.ERROR, 'Error analyzing flow ' + flowApiName + ': ' + e.getMessage());
         }
 
         return analysis;
@@ -62,8 +61,6 @@ public with sharing class FlowAnalysisService {
             String metadataXml = (String)inputs.get('MetadataXMLVar');
             String knowledge = (String)inputs.get('KnowledgeText');
 
-            System.debug(LoggingLevel.INFO, 'Metadata XML length: ' + (metadataXml != null ? metadataXml.length() : 0));
-            System.debug(LoggingLevel.INFO, 'Knowledge text length: ' + (knowledge != null ? knowledge.length() : 0));
 
             if (metadataXml == null || metadataXml.length() == 0) {
                 throw new FlowAnalysisException('Metadata XML is empty or null');
@@ -74,7 +71,6 @@ public with sharing class FlowAnalysisService {
             }
 
             // PRIORITY 1: Try Einstein GPT first (no API key needed, uses org license)
-            System.debug(LoggingLevel.INFO, 'Attempting Einstein GPT call with template: ' + templateName);
 
             try {
 
@@ -96,20 +92,17 @@ public with sharing class FlowAnalysisService {
             generationInput.isPreview = false;
             generationInput.additionalConfig = new ConnectApi.EinsteinLlmAdditionalConfigInput();
 
-            System.debug(LoggingLevel.INFO, 'Calling Einstein LLM API...');
 
                 // Call the prompt template
                 ConnectApi.EinsteinPromptTemplateGenerationsRepresentation response =
                     ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate('FlowAIAudit', generationInput);
 
-                System.debug(LoggingLevel.INFO, 'Einstein GPT API call completed successfully');
 
                 // Log token usage if available
                 if (response != null && response.generations != null && !response.generations.isEmpty()) {
                     ConnectApi.EinsteinLLMGenerationItemOutput generation = response.generations[0];
 
                     // Try to capture token usage from generation parameters
-                    System.debug(LoggingLevel.INFO, 'Generation response: ' + JSON.serializePretty(generation));
 
                     return generation.text;
                 } else {
@@ -118,16 +111,12 @@ public with sharing class FlowAnalysisService {
 
             } catch (Exception einsteinError) {
                 // Einstein GPT failed, try External BYO-LLM as fallback
-                System.debug(LoggingLevel.WARN, 'Einstein GPT unavailable: ' + einsteinError.getMessage());
-                System.debug(LoggingLevel.INFO, 'Attempting fallback to External BYO-LLM (HuggingFace)');
 
                 // PRIORITY 2: Fallback to External BYO-LLM (HuggingFace for demos/prototypes)
                 if (ExternalLLMService.isConfigured()) {
-                    System.debug(LoggingLevel.INFO, 'Using External BYO-LLM provider as fallback');
                     try {
                         return ExternalLLMService.generateCompletion(metadataXml, knowledge);
                     } catch (Exception externalError) {
-                        System.debug(LoggingLevel.ERROR, 'External LLM also failed: ' + externalError.getMessage());
                         // Both failed, return error response
                         String combinedError = 'Einstein GPT: ' + einsteinError.getMessage() +
                                              '; External LLM: ' + externalError.getMessage();
@@ -135,7 +124,6 @@ public with sharing class FlowAnalysisService {
                     }
                 } else {
                     // No fallback available, return Einstein error
-                    System.debug(LoggingLevel.ERROR, 'No External LLM configured for fallback');
 
                     String detailedError = einsteinError.getMessage();
                     if (einsteinError.getTypeName() != null) {
@@ -148,8 +136,6 @@ public with sharing class FlowAnalysisService {
 
         } catch (Exception e) {
             // Catch any other unexpected errors
-            System.debug(LoggingLevel.ERROR, 'Unexpected error in callPromptTemplate: ' + e.getMessage());
-            System.debug(LoggingLevel.ERROR, 'Stack trace: ' + e.getStackTraceString());
 
             String detailedError = e.getMessage();
             if (e.getTypeName() != null) {
@@ -275,8 +261,6 @@ public with sharing class FlowAnalysisService {
             }
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error parsing AI response: ' + e.getMessage());
-            System.debug(LoggingLevel.ERROR, 'Stack trace: ' + e.getStackTraceString());
             analysis.Analysis_Report__c = convertTextToHtml(aiResponse); // Store as HTML
             analysis.Status__c = 'Partial'; // Default to partial if parsing fails
         }
@@ -467,7 +451,6 @@ public with sharing class FlowAnalysisService {
             try {
                 return Decimal.valueOf(scoreStr);
             } catch (Exception e) {
-                System.debug('Could not parse score: ' + scoreStr);
             }
         }
         return null;

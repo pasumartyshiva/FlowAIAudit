@@ -68,7 +68,6 @@ public with sharing class FlowAnalysisPDFController {
                        reportText.escapeHtml4() + '</div>';
             }
         } catch (Exception e) {
-            System.debug('Error formatting report: ' + e.getMessage());
             // Return as-is if parsing fails, but escape HTML to prevent rendering issues
             return '<div style="white-space: pre-wrap; font-family: monospace;">' + 
                    reportText.escapeHtml4() + '</div>';
@@ -496,7 +495,6 @@ public with sharing class FlowAnalysisPDFController {
             return EncodingUtil.base64Encode(pdfBlob);
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error generating PDF: ' + e.getMessage());
             throw new AuraHandledException('Error generating PDF: ' + e.getMessage());
         }
     }
