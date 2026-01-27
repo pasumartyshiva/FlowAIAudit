@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
+    <consumerKey>REPLACE_WITH_CONSUMER_KEY_FROM_CONNECTED_APP</consumerKey>
+    <consumerSecret>REPLACE_WITH_CONSUMER_SECRET_FROM_CONNECTED_APP</consumerSecret>
+    <defaultScopes>api refresh_token</defaultScopes>
+    <executionUser>REPLACE_WITH_ADMIN_USERNAME</executionUser>
+    <friendlyName>Tooling API Loopback</friendlyName>
+    <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
+    <providerType>Salesforce</providerType>
+</AuthProvider>
