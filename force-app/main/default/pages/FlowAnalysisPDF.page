@@ -177,6 +177,81 @@
             clear: both;
         }
 
+        /* Score Banner */
+        .score-banner {
+            background-color: #764ba2 !important;
+            color: #ffffff !important;
+            padding: 30px 20px;
+            border-radius: 6px;
+            margin: 20px 0 30px 0;
+            text-align: center;
+        }
+        
+        .score-banner .score-value {
+            font-size: 48pt;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #ffffff !important;
+        }
+        
+        .score-banner .score-status {
+            font-size: 18pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ffffff !important;
+        }
+        
+        /* Category boxes */
+        .category-box {
+            margin: 20px 0;
+            padding: 18px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #0176d3;
+            border-radius: 4px;
+            page-break-inside: avoid;
+        }
+        
+        /* Status badges inline */
+        .status-inline {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 11pt;
+            color: #ffffff !important;
+        }
+        
+        .status-inline.compliant {
+            background-color: #2e844a !important;
+        }
+        
+        .status-inline.partial {
+            background-color: #f49756 !important;
+        }
+        
+        .status-inline.issue {
+            background-color: #c23934 !important;
+        }
+        
+        /* Explanation block */
+        .explanation-block {
+            margin: 15px 0;
+            padding: 12px 15px;
+            background-color: #fffbf0;
+            border-left: 4px solid #ffc107;
+            border-radius: 3px;
+        }
+        
+        /* Recommendation block */
+        .recommendation-block {
+            margin: 15px 0;
+            padding: 12px 15px;
+            background-color: #e7f3ff;
+            border-left: 4px solid #0176d3;
+            border-radius: 3px;
+        }
+
         .analysis-content div {
             margin: 10px 0;
             padding: 0;
@@ -219,10 +294,12 @@
             vertical-align: top;
         }
 
-        .analysis-content table th {
-            background: #f3f3f3;
+        /* Allow inline styles to override for summary table headers */
+        .analysis-content table thead th {
+            background-color: #0176d3 !important;
+            color: #ffffff !important;
             font-weight: bold;
-            color: #032e61;
+            padding: 12px;
         }
 
         .analysis-content ul,
@@ -310,7 +387,7 @@
     </div>
 
     <div class="analysis-content">
-        <apex:outputText value="{!flowAnalysis.Analysis_Report__c}" escape="false" />
+        <apex:outputText value="{!formattedReport}" escape="false" />
     </div>
 
     <div class="footer">

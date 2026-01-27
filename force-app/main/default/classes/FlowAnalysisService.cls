@@ -206,51 +206,125 @@ public with sharing class FlowAnalysisService {
 
     /**
      * @description Parses the AI response and updates the analysis record
-     * Expects either HTML or JSON format, or raw text from the LLM
+     * Handles both old format (score/status) and new format (overallScore/overallStatus)
      */
     private static void parseAndUpdateAnalysis(Flow_Analysis__c analysis, String aiResponse) {
         try {
             // Store raw response
             analysis.Raw_Findings__c = aiResponse.length() > 131000 ? aiResponse.substring(0, 131000) : aiResponse;
 
+            // Try to extract JSON from the response (may be wrapped in markdown code blocks)
+            String jsonText = extractJsonFromResponse(aiResponse);
+            
             // Try to parse as JSON first
-            if (aiResponse.trim().startsWith('{')) {
-                Map<String, Object> jsonResponse = (Map<String, Object>) JSON.deserializeUntyped(aiResponse);
+            if (jsonText != null && jsonText.trim().startsWith('{')) {
+                Map<String, Object> jsonResponse = (Map<String, Object>) JSON.deserializeUntyped(jsonText);
 
-                // Extract or calculate status
-                String status = (String) jsonResponse.get('status');
+                // Extract score - check both old and new format
+                Object scoreObj = jsonResponse.get('overallScore'); // New format
+                if (scoreObj == null) {
+                    scoreObj = jsonResponse.get('score'); // Old format
+                }
+                
+                Decimal score = null;
+                if (scoreObj != null) {
+                    score = scoreObj instanceof Decimal
+                        ? (Decimal) scoreObj
+                        : Decimal.valueOf(String.valueOf(scoreObj));
+                    // Round to whole number for cleaner display
+                    analysis.Overall_Score__c = score.setScale(0, RoundingMode.HALF_UP);
+                } else {
+                    score = calculateScoreFromCategories(jsonResponse);
+                    // Round to whole number for cleaner display
+                    analysis.Overall_Score__c = score != null ? score.setScale(0, RoundingMode.HALF_UP) : null;
+                }
+
+                // Extract status - check both old and new format
+                String status = (String) jsonResponse.get('overallStatus'); // New format
                 if (status == null) {
+                    status = (String) jsonResponse.get('status'); // Old format
+                }
+                
+                if (score != null) {
+                    // Override status based on score to ensure consistency
+                    // PASS: 75-100%, PARTIAL: 50-74%, FAIL: 0-49%
+                    status = calculateStatusFromScore(score);
+                } else if (status == null) {
                     status = calculateStatusFromCategories(jsonResponse);
                 }
                 analysis.Status__c = status;
 
-                // Extract or calculate score
-                Object scoreObj = jsonResponse.get('score');
-                if (scoreObj != null) {
-                    analysis.Overall_Score__c = scoreObj instanceof Decimal
-                        ? (Decimal) scoreObj
-                        : Decimal.valueOf(String.valueOf(scoreObj));
-                } else {
-                    analysis.Overall_Score__c = calculateScoreFromCategories(jsonResponse);
-                }
-
-                // Generate HTML report from JSON
-                analysis.Analysis_Report__c = generateHtmlReport(jsonResponse);
+                // Store the original extracted JSON text (not re-serialized) for frontend parsing
+                analysis.Analysis_Report__c = jsonText;
 
             } else {
-                // It's raw text/markdown from LLM - convert to HTML and store
-                analysis.Analysis_Report__c = convertTextToHtml(aiResponse);
+                // It's raw text/markdown from LLM - store as-is, frontends will format
+                analysis.Analysis_Report__c = aiResponse;
 
-                // Try to extract status from text
-                analysis.Status__c = extractStatusFromText(aiResponse);
-                analysis.Overall_Score__c = extractScoreFromText(aiResponse);
+                // Try to extract score from text first
+                Decimal score = extractScoreFromText(aiResponse);
+                // Round to whole number for cleaner display
+                analysis.Overall_Score__c = score != null ? score.setScale(0, RoundingMode.HALF_UP) : null;
+                
+                // Calculate status based on extracted score
+                if (score != null) {
+                    analysis.Status__c = calculateStatusFromScore(score);
+                } else {
+                    analysis.Status__c = extractStatusFromText(aiResponse);
+                }
             }
 
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'Error parsing AI response: ' + e.getMessage());
+            System.debug(LoggingLevel.ERROR, 'Stack trace: ' + e.getStackTraceString());
             analysis.Analysis_Report__c = convertTextToHtml(aiResponse); // Store as HTML
-            analysis.Status__c = 'Needs Work'; // Default to partial if parsing fails
+            analysis.Status__c = 'Partial'; // Default to partial if parsing fails
         }
+    }
+    
+    /**
+     * @description Extracts JSON from response that may be wrapped in markdown code blocks
+     */
+    private static String extractJsonFromResponse(String response) {
+        if (response == null) return null;
+        
+        String trimmed = response.trim();
+        
+        // Check for markdown code block with json
+        Pattern jsonBlockPattern = Pattern.compile('```(?:json)?\\s*([\\s\\S]*?)\\s*```');
+        Matcher matcher = jsonBlockPattern.matcher(trimmed);
+        if (matcher.find()) {
+            return matcher.group(1).trim();
+        }
+        
+        // Check if it's already plain JSON
+        if (trimmed.startsWith('{')) {
+            return trimmed;
+        }
+        
+        // Try to find JSON object within the text
+        Integer startIndex = trimmed.indexOf('{');
+        Integer endIndex = trimmed.lastIndexOf('}');
+        if (startIndex >= 0 && endIndex > startIndex) {
+            return trimmed.substring(startIndex, endIndex + 1);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * @description Calculates status based on score using balanced rubric:
+     * PASS: 70-100%, NEEDS WORK: 40-69%, FAIL: 0-39%
+     */
+    private static String calculateStatusFromScore(Decimal score) {
+        if (score == null) return 'Needs Work';
+        
+        // Round score to avoid floating point issues
+        Decimal roundedScore = score.setScale(0, RoundingMode.HALF_UP);
+        
+        if (roundedScore >= 70) return 'Pass';
+        if (roundedScore >= 40) return 'Needs Work';
+        return 'Fail';
     }
 
     /**
@@ -267,10 +341,46 @@ public with sharing class FlowAnalysisService {
 
     /**
      * @description Calculates overall status based on category statuses
+     * Uses new rubric: PASS (75-100%), PARTIAL (50-74%), FAIL (0-49%)
      */
     private static String calculateStatusFromCategories(Map<String, Object> jsonResponse) {
+        // First check if there's a score we can use
+        Object scoreObj = jsonResponse.get('score');
+        if (scoreObj != null) {
+            Decimal score = scoreObj instanceof Decimal
+                ? (Decimal) scoreObj
+                : Decimal.valueOf(String.valueOf(scoreObj));
+            return calculateStatusFromScore(score);
+        }
+        
+        // Check for findings array (from prompt template format)
+        List<Object> findings = (List<Object>) jsonResponse.get('findings');
         List<Object> categories = (List<Object>) jsonResponse.get('categories');
-        if (categories == null || categories.isEmpty()) return 'Needs Work';
+        
+        // Calculate based on findings severity if available
+        if (findings != null && !findings.isEmpty()) {
+            Integer highCount = 0;
+            Integer mediumCount = 0;
+            Integer lowCount = 0;
+            
+            for (Object findingObj : findings) {
+                Map<String, Object> finding = (Map<String, Object>) findingObj;
+                String severity = (String) finding.get('severity');
+                if (severity != null) {
+                    if (severity.equalsIgnoreCase('High')) highCount++;
+                    else if (severity.equalsIgnoreCase('Medium')) mediumCount++;
+                    else lowCount++;
+                }
+            }
+            
+            // High severity issues = Fail, Medium = Partial, mostly Low = Pass
+            if (highCount >= 3) return 'Fail';
+            if (highCount >= 1 || mediumCount >= 3) return 'Partial';
+            return 'Pass';
+        }
+        
+        // Fall back to categories if available
+        if (categories == null || categories.isEmpty()) return 'Partial';
 
         Integer issueCount = 0;
         Integer compliantCount = 0;
@@ -279,17 +389,21 @@ public with sharing class FlowAnalysisService {
         for (Object catObj : categories) {
             Map<String, Object> category = (Map<String, Object>) catObj;
             String status = (String) category.get('status');
-            if (status == 'Issue') issueCount++;
-            else if (status == 'Compliant') compliantCount++;
-            else partialCount++;
+            if (status != null) {
+                if (status.equalsIgnoreCase('Issue') || status.equalsIgnoreCase('Fail')) issueCount++;
+                else if (status.equalsIgnoreCase('Compliant') || status.equalsIgnoreCase('Pass')) compliantCount++;
+                else partialCount++;
+            }
         }
 
-        // If more than 50% are issues, overall is Fail
-        if (issueCount > categories.size() / 2) return 'Fail';
-        // If more than 80% are compliant, overall is Pass
-        if (compliantCount >= categories.size() * 0.8) return 'Pass';
-        // Otherwise Needs Work
-        return 'Needs Work';
+        // Calculate percentage of compliant categories
+        Decimal totalCategories = categories.size();
+        Decimal compliantPercent = (compliantCount / totalCategories) * 100;
+        
+        // Apply new rubric: PASS (75-100%), PARTIAL (50-74%), FAIL (0-49%)
+        if (compliantPercent >= 75) return 'Pass';
+        if (compliantPercent >= 50) return 'Partial';
+        return 'Fail';
     }
 
     /**
@@ -360,19 +474,23 @@ public with sharing class FlowAnalysisService {
     }
 
     /**
-     * @description Generates HTML report from JSON response with scorecard
+     * @description Generates HTML report from JSON response with enhanced category support
+     * Handles both old format and new format with overallScore/overallStatus and categories
      */
     private static String generateHtmlReport(Map<String, Object> jsonResponse) {
         String html = '<div class="flow-analysis-report" style="font-family: Arial, sans-serif; padding: 20px;">';
         html += '<h1 style="color: #032e61; border-bottom: 3px solid #0176d3; padding-bottom: 10px;">Flow Analysis Report</h1>';
 
-        // Add overall status and score
-        String status = (String) jsonResponse.get('status');
-        Object scoreObj = jsonResponse.get('score');
+        // Add overall status and score (support both formats)
+        Object scoreObj = jsonResponse.get('overallScore');
+        if (scoreObj == null) scoreObj = jsonResponse.get('score'); // Fallback to old format
+        
+        String status = (String) jsonResponse.get('overallStatus');
+        if (status == null) status = (String) jsonResponse.get('status'); // Fallback to old format
 
         html += '<div style="background: #f3f3f3; padding: 15px; margin: 20px 0; border-radius: 5px;">';
         if (status != null) {
-            String statusColor = status == 'Pass' ? '#2e844a' : (status == 'Fail' ? '#c23934' : '#f49756');
+            String statusColor = getStatusColorForHtml(status);
             html += '<div style="display: inline-block; background: ' + statusColor + '; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; margin-right: 15px;">';
             html += status.toUpperCase();
             html += '</div>';
@@ -382,97 +500,193 @@ public with sharing class FlowAnalysisService {
         }
         html += '</div>';
 
-        // Add scorecard table
+        // Add summary if present
+        String summary = (String) jsonResponse.get('summary');
+        if (String.isNotBlank(summary)) {
+            html += '<div style="background: #f0f9ff; padding: 15px; margin: 20px 0; border-left: 4px solid #0176d3;">';
+            html += '<h3 style="margin: 0 0 10px 0; color: #032e61;">Summary</h3>';
+            html += '<p style="margin: 0;">' + summary + '</p>';
+            html += '</div>';
+        }
+
+        // Add categories with enhanced display (NEW FORMAT)
         List<Object> categories = (List<Object>) jsonResponse.get('categories');
         if (categories != null && !categories.isEmpty()) {
-            html += '<h2 style="color: #032e61; margin-top: 30px;">Scorecard by Category</h2>';
-            html += '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-            html += '<thead><tr style="background: #0176d3; color: white;">';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Category</th>';
-            html += '<th style="padding: 12px; text-align: center; border: 1px solid #ddd; width: 120px;">Status</th>';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Key Findings</th>';
-            html += '</tr></thead><tbody>';
-
+            html += '<h2 style="color: #032e61; margin-top: 30px;">Analysis by Category</h2>';
+            
             for (Object catObj : categories) {
                 Map<String, Object> category = (Map<String, Object>) catObj;
-                String catName = (String) category.get('name');
+                Object numberObj = category.get('number');
+                String name = (String) category.get('name');
+                String icon = (String) category.get('icon');
                 String catStatus = (String) category.get('status');
-                String catFindings = (String) category.get('findings');
+                String analysis = (String) category.get('analysis');
+                String explanation = (String) category.get('explanation');
+                String recommendation = (String) category.get('recommendation');
+                List<Object> details = (List<Object>) category.get('details');
+                
+                html += '<div style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 5px solid #0176d3;">';
+                
+                // Category Header
+                html += '<h3 style="color: #0176d3; margin: 0 0 15px 0;">';
+                if (icon != null) html += icon + ' ';
+                if (numberObj != null) html += numberObj + '. ';
+                html += (name != null ? name : 'Category');
+                html += '</h3>';
+                
+                // Status Badge
+                if (catStatus != null) {
+                    String statusColor = getStatusColorForHtml(catStatus);
+                    html += '<div style="margin: 10px 0;">';
+                    html += '<span style="background: ' + statusColor + '; color: white; padding: 6px 14px; border-radius: 4px; font-weight: bold; font-size: 13px; display: inline-block;">';
+                    html += catStatus.toUpperCase();
+                    html += '</span></div>';
+                }
+                
+                // Analysis
+                if (String.isNotBlank(analysis)) {
+                    html += '<p style="font-style: italic; color: #555; margin: 15px 0; font-size: 15px;">' + analysis + '</p>';
+                }
+                
+                // Details
+                if (details != null && !details.isEmpty()) {
+                    for (Object detailObj : details) {
+                        Map<String, Object> detail = (Map<String, Object>) detailObj;
+                        String heading = (String) detail.get('heading');
+                        String content = (String) detail.get('content');
+                        
+                        if (heading != null && content != null) {
+                            html += '<p style="margin: 12px 0;"><strong style="color: #032e61;">' + heading + ':</strong> ' + content + '</p>';
+                        }
+                    }
+                }
+                
+                // Explanation
+                if (String.isNotBlank(explanation)) {
+                    html += '<div style="background: white; padding: 15px; border-left: 4px solid #ffc107; margin: 15px 0; border-radius: 4px;">';
+                    html += '<strong>Explanation:</strong> ' + explanation;
+                    html += '</div>';
+                }
+                
+                // Recommendation
+                if (String.isNotBlank(recommendation)) {
+                    html += '<div style="background: #e7f3ff; padding: 15px; border-left: 4px solid #0176d3; margin: 15px 0; border-radius: 4px;">';
+                    html += '<strong style="color: #0176d3;">Recommendation:</strong> ' + recommendation;
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+            }
+        }
 
-                String rowColor = catStatus == 'Compliant' ? '#d4edda' : (catStatus == 'Issue' ? '#f8d7da' : '#fff3cd');
+        // Add summary table
+        List<Object> summaryTable = (List<Object>) jsonResponse.get('summaryTable');
+        if (summaryTable != null && !summaryTable.isEmpty()) {
+            html += '<h2 style="color: #032e61; margin-top: 30px; border-bottom: 2px solid #0176d3; padding-bottom: 10px;">Summary Table</h2>';
+            html += '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            html += '<thead><tr style="background: #0176d3; color: white;">';
+            html += '<th style="padding: 12px; text-align: left; border: 1px solid #015696;">Area</th>';
+            html += '<th style="padding: 12px; text-align: center; border: 1px solid #015696; width: 120px;">Status</th>';
+            html += '<th style="padding: 12px; text-align: left; border: 1px solid #015696;">Fix/Recommendation</th>';
+            html += '</tr></thead><tbody>';
+            
+            for (Object rowObj : summaryTable) {
+                Map<String, Object> row = (Map<String, Object>) rowObj;
+                String area = (String) row.get('area');
+                String rowStatus = (String) row.get('status');
+                String fix = (String) row.get('fix');
+                
+                String rowColor = rowStatus != null && rowStatus.equalsIgnoreCase('COMPLIANT') ? '#d4edda' : 
+                                  (rowStatus != null && (rowStatus.equalsIgnoreCase('PARTIAL') || rowStatus.contains('WORK')) ? '#fff3cd' : '#f8d7da');
                 html += '<tr style="background: ' + rowColor + ';">';
-                html += '<td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">' + catName + '</td>';
-                html += '<td style="padding: 12px; border: 1px solid #ddd; text-align: center;">' + catStatus + '</td>';
-                html += '<td style="padding: 12px; border: 1px solid #ddd;">' + (catFindings != null ? catFindings : 'N/A') + '</td>';
+                html += '<td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">' + (area != null ? area : '') + '</td>';
+                html += '<td style="padding: 12px; border: 1px solid #ddd; text-align: center;">' + (rowStatus != null ? rowStatus : '') + '</td>';
+                html += '<td style="padding: 12px; border: 1px solid #ddd;">' + (fix != null ? fix : '') + '</td>';
                 html += '</tr>';
             }
             html += '</tbody></table>';
         }
 
-        // Add detailed findings
+        // OLD FORMAT: Add findings if present (backward compatibility)
         List<Object> findings = (List<Object>) jsonResponse.get('findings');
         if (findings != null && !findings.isEmpty()) {
             html += '<h2 style="color: #032e61; margin-top: 30px;">Detailed Findings & Recommendations</h2>';
             html += '<div style="background: white; padding: 15px; border-left: 4px solid #0176d3; margin: 15px 0;">';
             for (Integer i = 0; i < findings.size(); i++) {
                 Map<String, Object> finding = (Map<String, Object>) findings[i];
-
-                // Handle both "area" and "category" keys (LLM may use either)
                 String area = (String) finding.get('area');
-                if (area == null) {
-                    area = (String) finding.get('category');
-                }
-
-                // Handle both "explanation" and "issue" keys
+                if (area == null) area = (String) finding.get('category');
                 String explanation = (String) finding.get('explanation');
-                if (explanation == null) {
-                    explanation = (String) finding.get('issue');
-                }
-
-                String recommendation = (String) finding.get('recommendation');
-
-                // Handle both "severity" for display
+                if (explanation == null) explanation = (String) finding.get('issue');
+                String recommendationText = (String) finding.get('recommendation');
                 String severity = (String) finding.get('severity');
 
                 html += '<div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5;">';
-
-                // Add severity badge if present
-                String headerHtml = '<h3 style="color: #0176d3; margin-top: 0;">' + (i+1) + '. ';
-                if (area != null && area != 'null') {
-                    headerHtml += area;
-                } else {
-                    headerHtml += 'Finding ' + (i+1);
-                }
-
+                html += '<h3 style="color: #0176d3; margin-top: 0;">' + (i+1) + '. ' + (area != null ? area : 'Finding ' + (i+1));
                 if (severity != null) {
-                    String severityColor = severity == 'High' ? '#c23934' : (severity == 'Medium' ? '#f49756' : '#2e844a');
-                    headerHtml += ' <span style="display: inline-block; background: ' + severityColor + '; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; margin-left: 10px;">' + severity + '</span>';
+                    String severityColor = getSeverityColorForHtml(severity);
+                    html += ' <span style="display: inline-block; background: ' + severityColor + '; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; margin-left: 10px;">' + severity + '</span>';
                 }
-                headerHtml += '</h3>';
-                html += headerHtml;
-
-                if (explanation != null && explanation != 'null') {
+                html += '</h3>';
+                if (explanation != null) {
                     html += '<p style="margin: 10px 0;"><strong>Issue:</strong> ' + explanation + '</p>';
                 }
-                if (recommendation != null && recommendation != 'null') {
-                    html += '<p style="margin: 10px 0; padding: 10px; background: #f0f9ff; border-left: 3px solid #0176d3;"><strong>Recommendation:</strong> ' + recommendation + '</p>';
+                if (recommendationText != null) {
+                    html += '<p style="margin: 10px 0; padding: 10px; background: #f0f9ff; border-left: 3px solid #0176d3;"><strong>Recommendation:</strong> ' + recommendationText + '</p>';
                 }
                 html += '</div>';
             }
             html += '</div>';
         }
 
-        // Add summary table if present
-        String summaryTable = (String) jsonResponse.get('summaryTable');
-        if (summaryTable != null) {
-            html += '<h2 style="color: #032e61; margin-top: 30px;">Summary Table</h2>';
-            html += '<div style="background: white; padding: 15px; margin: 15px 0;">';
-            html += summaryTable;
-            html += '</div>';
+        // Add strengths if present
+        List<Object> strengths = (List<Object>) jsonResponse.get('strengths');
+        if (strengths != null && !strengths.isEmpty()) {
+            html += '<h3 style="color: #2e844a; margin-top: 20px;">Strengths</h3>';
+            html += '<ul style="color: #2e844a;">';
+            for (Object strength : strengths) {
+                html += '<li>' + String.valueOf(strength) + '</li>';
+            }
+            html += '</ul>';
+        }
+
+        // Add risks if present
+        List<Object> risks = (List<Object>) jsonResponse.get('risks');
+        if (risks != null && !risks.isEmpty()) {
+            html += '<h3 style="color: #c23934; margin-top: 20px;">Risks</h3>';
+            html += '<ul style="color: #c23934;">';
+            for (Object risk : risks) {
+                html += '<li>' + String.valueOf(risk) + '</li>';
+            }
+            html += '</ul>';
         }
 
         html += '</div>';
         return html;
+    }
+    
+    /**
+     * @description Returns color code for status in HTML
+     */
+    private static String getStatusColorForHtml(String status) {
+        if (status == null) return '#666';
+        String statusLower = status.toLowerCase();
+        if (statusLower.contains('pass') || statusLower.contains('compliant')) return '#2e844a';
+        if (statusLower.contains('partial') || statusLower.contains('work')) return '#f49756';
+        if (statusLower.contains('fail') || statusLower.contains('issue')) return '#c23934';
+        return '#666';
+    }
+    
+    /**
+     * @description Returns color code for severity in HTML
+     */
+    private static String getSeverityColorForHtml(String severity) {
+        if (severity == null) return '#666';
+        String severityLower = severity.toLowerCase();
+        if (severityLower.contains('high')) return '#c23934';
+        if (severityLower.contains('medium')) return '#f49756';
+        if (severityLower.contains('low')) return '#2e844a';
+        return '#666';
     }
 
 

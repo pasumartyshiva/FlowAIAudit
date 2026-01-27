@@ -29,6 +29,11 @@
                 <label>Partial</label>
             </value>
             <value>
+                <fullName>Needs Work</fullName>
+                <default>false</default>
+                <label>Needs Work</label>
+            </value>
+            <value>
                 <fullName>Fail</fullName>
                 <default>false</default>
                 <label>Fail</label>

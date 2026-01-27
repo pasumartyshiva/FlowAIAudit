@@ -54,7 +54,7 @@
             .status-pass {
                 background: #2e844a;
             }
-            .status-partial {
+            .status-needs-work {
                 background: #f49756;
             }
             .status-fail {
@@ -94,8 +94,8 @@
                         <apex:outputPanel rendered="{!Flow_Analysis__c.Status__c == 'Pass'}">
                             <span class="status-badge status-pass">PASS</span>
                         </apex:outputPanel>
-                        <apex:outputPanel rendered="{!Flow_Analysis__c.Status__c == 'Partial'}">
-                            <span class="status-badge status-partial">PARTIAL</span>
+                        <apex:outputPanel rendered="{!Flow_Analysis__c.Status__c == 'Needs Work'}">
+                            <span class="status-badge status-needs-work">NEEDS WORK</span>
                         </apex:outputPanel>
                         <apex:outputPanel rendered="{!Flow_Analysis__c.Status__c == 'Fail'}">
                             <span class="status-badge status-fail">FAIL</span>
@@ -132,7 +132,7 @@
         </div>
 
         <div class="analysis-content">
-            <apex:outputField value="{!Flow_Analysis__c.Analysis_Report__c}"/>
+            <apex:outputText value="{!Flow_Analysis__c.Analysis_Report__c}" escape="false"/>
         </div>
 
         <div class="footer">

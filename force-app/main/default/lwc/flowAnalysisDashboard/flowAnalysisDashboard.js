@@ -220,76 +220,158 @@ export default class FlowAnalysisDashboard extends LightningElement {
 
     parseAndFormatAnalysis(reportText) {
         try {
-            let jsonText = reportText.trim();
+            let trimmed = reportText.trim();
+            
+            console.log('🔍 Starting parseAndFormatAnalysis');
+            console.log('📝 Input (first 200 chars):', trimmed.substring(0, 200));
 
-            // Check if the response is HTML-wrapped JSON
-            if (jsonText.startsWith('<')) {
-                console.log('Detected HTML-wrapped JSON, extracting...');
+            // Check if it's already formatted HTML (from the backend)
+            if (trimmed.startsWith('<div') || trimmed.startsWith('<html')) {
+                console.log('✅ Detected pre-formatted HTML, rendering directly');
+                return trimmed;
+            }
 
-                // Extract text content from HTML
+            // CRITICAL: Decode HTML entities (Salesforce encodes JSON as HTML)
+            // This converts &quot; → " , &amp; → & , &#128203; → 📋 etc.
+            if (trimmed.includes('&quot;') || trimmed.includes('&amp;') || trimmed.includes('&#')) {
+                console.log('🔧 Detected HTML entities, decoding...');
+                const textarea = document.createElement('textarea');
+                textarea.innerHTML = trimmed;
+                trimmed = textarea.value;
+                console.log('✅ Decoded (first 200 chars):', trimmed.substring(0, 200));
+            }
+
+            // Check if it's HTML-wrapped JSON (old format)
+            if (trimmed.startsWith('<') && !trimmed.startsWith('{')) {
+                console.log('🔄 Detected HTML-wrapped content, extracting...');
                 const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = jsonText;
-                jsonText = tempDiv.textContent || tempDiv.innerText || '';
-                jsonText = jsonText.trim();
-
-                console.log('Extracted text from HTML:', jsonText.substring(0, 200));
+                tempDiv.innerHTML = trimmed;
+                let extractedText = tempDiv.textContent || tempDiv.innerText || '';
+                extractedText = extractedText.trim();
+                console.log('📤 Extracted text (first 200 chars):', extractedText.substring(0, 200));
+                
+                if (!extractedText || extractedText.startsWith('<')) {
+                    console.log('⚠️ Extraction failed, returning original');
+                    return trimmed;
+                }
+                trimmed = extractedText;
             }
 
             // Remove markdown code block if present
-            const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
+            let jsonMatch = trimmed.match(/```json\s*([\s\S]*?)\s*```/);
             if (jsonMatch) {
-                jsonText = jsonMatch[1].trim();
+                console.log('📦 Found JSON markdown block');
+                trimmed = jsonMatch[1].trim();
+            } else {
+                jsonMatch = trimmed.match(/```\s*([\s\S]*?)\s*```/);
+                if (jsonMatch) {
+                    console.log('📦 Found generic markdown block');
+                    trimmed = jsonMatch[1].trim();
+                }
             }
 
             // Check if it's a JSON object (starts with {)
-            if (!jsonText.startsWith('{')) {
-                console.log('Not a JSON object, returning raw text');
+            if (!trimmed.startsWith('{')) {
+                console.log('❌ Not a JSON object (first char: ' + trimmed.charAt(0) + '), returning as formatted text');
                 return this.formatRawText(reportText);
             }
 
             // Parse the JSON
-            console.log('Attempting to parse JSON...');
-            const analysisData = JSON.parse(jsonText);
-            console.log('JSON parsed successfully:', analysisData);
+            console.log('🔄 Attempting to parse JSON...');
+            const analysisData = JSON.parse(trimmed);
+            console.log('✅ JSON parsed successfully');
+            console.log('📊 Data keys:', Object.keys(analysisData));
+            
+            // Check if we have required data
+            if (!analysisData.overallScore && !analysisData.score && !analysisData.categories && !analysisData.findings) {
+                console.warn('⚠️ JSON missing expected fields, falling back to raw text');
+                return this.formatRawText(reportText);
+            }
 
-            // Format as HTML matching the guru format
-            let html = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; line-height: 1.8; color: #333; max-width: 1200px;">';
+            console.log('🎨 Generating HTML from JSON...');
+            const html = this.generateHtmlFromJson(analysisData);
+            console.log('✅ HTML generated successfully, length:', html.length);
+            return html;
 
-            // Overall Score Banner
-            html += '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; text-align: center;">';
-            html += `<div style="font-size: 48px; font-weight: 700; margin-bottom: 10px;">${analysisData.overallScore}%</div>`;
-            html += `<div style="font-size: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;">${analysisData.overallStatus}</div>`;
+        } catch (error) {
+            console.error('❌ Error parsing analysis report:', error);
+            console.error('📋 Error message:', error.message);
+            console.error('📄 Failed on text (first 500 chars):', reportText.substring(0, 500));
+            return this.formatRawText(reportText);
+        }
+    }
+    
+    generateHtmlFromJson(analysisData) {
+        console.log('🎨 Starting HTML generation from JSON');
+        let html = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333;">';
+
+        // Overall Score Banner - Purple gradient with large score
+        const score = analysisData.overallScore || analysisData.score;
+        const status = analysisData.overallStatus || analysisData.status;
+        
+        if (score || status) {
+            html += '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; border-radius: 8px; margin: 0 0 30px 0; text-align: center;">';
+            if (score) {
+                // Round score to whole number for display
+                const roundedScore = Math.round(score);
+                html += `<div style="font-size: 56px; font-weight: 700; margin-bottom: 10px;">${roundedScore}%</div>`;
+            }
+            if (status) {
+                // Map PARTIAL to NEEDS WORK for display
+                const displayStatus = this.getDisplayStatus(status);
+                html += `<div style="font-size: 22px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;">${displayStatus}</div>`;
+            }
             html += '</div>';
+        }
 
-            // Categories
+            // Categories - Clean UI design with white boxes
             if (analysisData.categories && analysisData.categories.length > 0) {
                 analysisData.categories.forEach(category => {
-                    html += '<div style="margin-bottom: 40px; padding: 25px; background: #f8f9fa; border-radius: 8px; border-left: 5px solid #0176d3;">';
+                    // Category container - white background with left border
+                    html += '<div style="margin-bottom: 25px; padding: 20px; background: white; border-left: 4px solid #0176d3; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">';
 
-                    // Category Header
-                    html += `<h2 style="color: #032e61; font-size: 22px; font-weight: 700; margin: 0 0 15px 0;">${category.icon} ${category.number}. ${category.name}</h2>`;
+                    // Category Header with icon and number
+                    const icon = category.icon || '';
+                    const number = category.number || '';
+                    const name = category.name || 'Category';
+                    html += `<h3 style="color: #032e61; font-size: 20px; font-weight: 700; margin: 0 0 12px 0;">${icon} ${number}. ${this.escapeHtml(name)}</h3>`;
 
-                    // Analysis
-                    html += `<p style="font-style: italic; color: #555; margin-bottom: 20px; font-size: 15px;">${category.analysis}</p>`;
+                    // Analysis/Overview in italics
+                    if (category.analysis) {
+                        html += `<p style="font-style: italic; color: #555; margin-bottom: 15px; font-size: 15px; line-height: 1.6;">${this.escapeHtml(category.analysis)}</p>`;
+                    }
 
-                    // Details
+                    // Details with bold headings
                     if (category.details && category.details.length > 0) {
                         category.details.forEach(detail => {
-                            html += `<p style="margin: 12px 0;"><strong style="color: #032e61;">${detail.heading}:</strong> ${detail.content}</p>`;
+                            if (detail.heading && detail.content) {
+                                html += `<p style="margin: 10px 0; line-height: 1.6;"><strong style="color: #032e61;">${this.escapeHtml(detail.heading)}:</strong> ${this.escapeHtml(detail.content)}</p>`;
+                            }
                         });
                     }
 
-                    // Status Badge
-                    const statusColor = this.getStatusColor(category.status);
-                    html += '<div style="margin: 20px 0;">';
-                    html += `<span style="background: ${statusColor}; color: white; padding: 6px 14px; border-radius: 4px; font-weight: 600; font-size: 13px; display: inline-block;">Status: ${category.status}</span>`;
-                    html += '</div>';
+                    // Status Badge - map PARTIAL to NEEDS WORK for display
+                    if (category.status) {
+                        const statusColor = this.getStatusColor(category.status);
+                        const displayStatus = this.getDisplayStatus(category.status);
+                        html += '<div style="margin: 15px 0 12px 0;">';
+                        html += `<span style="display: inline-block; background: ${statusColor}; color: white; padding: 6px 14px; border-radius: 4px; font-weight: 600; font-size: 12px;">Status: ${displayStatus}</span>`;
+                        html += '</div>';
+                    }
 
-                    // Explanation
-                    html += `<p style="background: white; padding: 15px; border-left: 4px solid #ffc107; margin: 15px 0; border-radius: 4px;"><strong>Explanation:</strong> ${category.explanation}</p>`;
+                    // Explanation - yellow/gold left border
+                    if (category.explanation) {
+                        html += '<div style="margin: 15px 0; padding: 12px 15px; background: #fffbf0; border-left: 4px solid #ffc107; border-radius: 3px;">';
+                        html += `<p style="margin: 0; line-height: 1.6;"><strong>Explanation:</strong> ${this.escapeHtml(category.explanation)}</p>`;
+                        html += '</div>';
+                    }
 
-                    // Recommendation
-                    html += `<p style="background: #e7f3ff; padding: 15px; border-left: 4px solid #0176d3; margin: 15px 0; border-radius: 4px;"><strong style="color: #0176d3;">Recommendation:</strong> ${category.recommendation}</p>`;
+                    // Recommendation - blue left border
+                    if (category.recommendation) {
+                        html += '<div style="margin: 15px 0; padding: 12px 15px; background: #e7f3ff; border-left: 4px solid #0176d3; border-radius: 3px;">';
+                        html += `<p style="margin: 0; line-height: 1.6;"><strong style="color: #0176d3;">Recommendation:</strong> ${this.escapeHtml(category.recommendation)}</p>`;
+                        html += '</div>';
+                    }
 
                     html += '</div>';
                 });
@@ -311,10 +393,11 @@ export default class FlowAnalysisDashboard extends LightningElement {
                 analysisData.summaryTable.forEach((row, index) => {
                     const bgColor = index % 2 === 0 ? 'white' : '#f8f9fa';
                     html += `<tr style="background: ${bgColor}; transition: background 0.2s;">`;
-                    html += `<td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><strong>${row.area}</strong></td>`;
+                    html += `<td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><strong>${this.escapeHtml(row.area || '')}</strong></td>`;
                     const statusColor = this.getStatusColor(row.status);
-                    html += `<td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><span style="background: ${statusColor}; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600; font-size: 12px; display: inline-block;">${row.status}</span></td>`;
-                    html += `<td style="padding: 14px; border-bottom: 1px solid #e0e0e0;">${row.fix}</td>`;
+                    const displayStatus = this.getDisplayStatus(row.status);
+                    html += `<td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><span style="background: ${statusColor}; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600; font-size: 12px; display: inline-block;">${displayStatus}</span></td>`;
+                    html += `<td style="padding: 14px; border-bottom: 1px solid #e0e0e0;">${this.escapeHtml(row.fix || '')}</td>`;
                     html += '</tr>';
                 });
 
@@ -322,17 +405,99 @@ export default class FlowAnalysisDashboard extends LightningElement {
                 html += '</table>';
             }
 
+            // NEW FORMAT: Priorities Section (Must Fix, Should Fix, Consider)
+            if (analysisData.priorities) {
+                html += '<div style="margin-top: 40px;">';
+                
+                // Must Fix (Critical)
+                if (analysisData.priorities.mustFix && analysisData.priorities.mustFix.length > 0) {
+                    html += '<div style="background: #fef2f2; border-left: 4px solid #c23934; padding: 20px; margin: 15px 0; border-radius: 4px;">';
+                    html += '<h3 style="color: #c23934; margin: 0 0 12px 0;">🚨 Must Fix (Critical)</h3>';
+                    html += '<ul style="margin: 0; padding-left: 20px;">';
+                    analysisData.priorities.mustFix.forEach(item => {
+                        html += `<li style="margin: 8px 0; color: #7f1d1d;">${this.escapeHtml(item)}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                // Should Fix (Needs Work)
+                if (analysisData.priorities.shouldFix && analysisData.priorities.shouldFix.length > 0) {
+                    html += '<div style="background: #fffbeb; border-left: 4px solid #f49756; padding: 20px; margin: 15px 0; border-radius: 4px;">';
+                    html += '<h3 style="color: #b45309; margin: 0 0 12px 0;">⚠️ Should Fix (Before Production)</h3>';
+                    html += '<ul style="margin: 0; padding-left: 20px;">';
+                    analysisData.priorities.shouldFix.forEach(item => {
+                        html += `<li style="margin: 8px 0; color: #78350f;">${this.escapeHtml(item)}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                // Consider (Minor Suggestions)
+                if (analysisData.priorities.consider && analysisData.priorities.consider.length > 0) {
+                    html += '<div style="background: #eff6ff; border-left: 4px solid #17a2b8; padding: 20px; margin: 15px 0; border-radius: 4px;">';
+                    html += '<h3 style="color: #0369a1; margin: 0 0 12px 0;">💡 Consider (Future Improvements)</h3>';
+                    html += '<ul style="margin: 0; padding-left: 20px;">';
+                    analysisData.priorities.consider.forEach(item => {
+                        html += `<li style="margin: 8px 0; color: #1e3a5f;">${this.escapeHtml(item)}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                html += '</div>';
+            }
+
+            // NEW FORMAT: Strengths Section
+            if (analysisData.strengths && analysisData.strengths.length > 0) {
+                html += '<div style="background: #ecfdf5; border-left: 4px solid #2e844a; padding: 20px; margin: 30px 0 15px 0; border-radius: 4px;">';
+                html += '<h3 style="color: #2e844a; margin: 0 0 12px 0;">✅ Strengths</h3>';
+                html += '<ul style="margin: 0; padding-left: 20px;">';
+                analysisData.strengths.forEach(strength => {
+                    html += `<li style="margin: 8px 0; color: #14532d;">${this.escapeHtml(String(strength))}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            // OLD FORMAT SUPPORT: Summary
+            if (analysisData.summary) {
+                html += '<div style="background: #f0f9ff; padding: 20px; margin: 20px 0; border-left: 4px solid #0176d3; border-radius: 4px;">';
+                html += `<p style="margin: 0; font-size: 16px; line-height: 1.6;">${this.escapeHtml(analysisData.summary)}</p>`;
+                html += '</div>';
+            }
+            
+            // OLD FORMAT: Findings (for backward compatibility)
+            if (analysisData.findings && analysisData.findings.length > 0) {
+                html += '<h2 style="color: #032e61; font-size: 24px; font-weight: 700; margin: 40px 0 20px 0;">Detailed Findings</h2>';
+                analysisData.findings.forEach((finding, index) => {
+                    html += '<div style="margin-bottom: 30px; padding: 20px; background: white; border-left: 5px solid #0176d3; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+                    html += `<h3 style="color: #0176d3; margin: 0 0 12px 0;">${index + 1}. ${this.escapeHtml(finding.category || 'Finding')}</h3>`;
+                    
+                    if (finding.severity) {
+                        const sevColor = finding.severity === 'High' ? '#c23934' : (finding.severity === 'Medium' ? '#f49756' : '#2e844a');
+                        html += `<span style="background: ${sevColor}; color: white; padding: 4px 10px; border-radius: 3px; font-size: 12px; font-weight: 600;">${this.escapeHtml(finding.severity)}</span>`;
+                    }
+                    
+                    if (finding.issue) {
+                        html += `<p style="margin: 12px 0;"><strong>Issue:</strong> ${this.escapeHtml(finding.issue)}</p>`;
+                    }
+                    
+                    if (finding.recommendation) {
+                        html += `<p style="margin: 12px 0; padding: 12px; background: #f0f9ff; border-radius: 4px;"><strong>Recommendation:</strong> ${this.escapeHtml(finding.recommendation)}</p>`;
+                    }
+                    
+                    html += '</div>';
+                });
+            }
+            
+            // Risks (old format)
+            if (analysisData.risks && analysisData.risks.length > 0) {
+                html += '<h3 style="color: #c23934; margin-top: 30px;">⚠️ Risks</h3><ul style="color: #c23934;">';
+                analysisData.risks.forEach(risk => {
+                    html += `<li>${this.escapeHtml(String(risk))}</li>`;
+                });
+                html += '</ul>';
+            }
+
             html += '</div>';
-
             return html;
-
-        } catch (error) {
-            console.error('Error parsing analysis report:', error);
-            console.error('Error details:', error.message);
-            console.error('JSON text that failed:', reportText.substring(0, 500));
-            // Return formatted raw text if parsing fails
-            return this.formatRawText(reportText);
-        }
     }
 
     formatRawText(text) {
@@ -347,10 +512,23 @@ export default class FlowAnalysisDashboard extends LightningElement {
     }
 
     getStatusColor(status) {
+        if (!status) return '#666';
         const statusLower = status.toLowerCase();
         if (statusLower === 'pass' || statusLower === 'compliant') return '#2e844a';
-        if (statusLower === 'needs work' || statusLower === 'needs_work') return '#f49756';
-        return '#c23934'; // Issue/Fail
+        if (statusLower === 'minor') return '#17a2b8'; // Blue for minor suggestions
+        if (statusLower === 'partial' || statusLower === 'needs work' || statusLower === 'needs_work') return '#f49756';
+        if (statusLower === 'fail' || statusLower === 'issue' || statusLower === 'critical') return '#c23934';
+        if (statusLower === 'n/a') return '#6c757d'; // Gray for N/A
+        return '#666';
+    }
+    
+    // Map AI status to user-friendly display
+    getDisplayStatus(status) {
+        if (!status) return '';
+        const statusLower = status.toLowerCase();
+        if (statusLower === 'partial') return 'NEEDS WORK';
+        if (statusLower === 'n/a') return 'N/A';
+        return status.toUpperCase();
     }
 
     getSeverityColor(severity) {
