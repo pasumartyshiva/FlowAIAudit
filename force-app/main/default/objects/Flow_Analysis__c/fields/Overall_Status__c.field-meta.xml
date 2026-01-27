@@ -6,11 +6,11 @@
     ISBLANK(Overall_Score__c),
     "Not Analyzed",
     IF(
-        Overall_Score__c &gt;= 80,
+        Overall_Score__c &gt;= 70,
         "PASS",
         IF(
-            Overall_Score__c &gt;= 50,
-            "NEEDS_WORK",
+            Overall_Score__c &gt;= 40,
+            "NEEDS WORK",
             "FAIL"
         )
     )
