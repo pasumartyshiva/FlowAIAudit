@@ -53,7 +53,7 @@ The Tooling API allows the app to fetch flow metadata for analysis.
 
 ### 2.3 Create Named Credential
 
-1. **Setup → Security → Named Credentials → New**
+1. **Setup → Security → Named Credentials → New Legacy**
 2. Configure:
    - **Label**: `Salesforce_Tooling_API`
    - **URL**: `https://YOUR_DOMAIN.my.salesforce.com`
@@ -63,6 +63,27 @@ The Tooling API allows the app to fetch flow metadata for analysis.
    - **Scope**: `api refresh_token`
    - ✅ **Start Authentication Flow on Save**
 3. **Save** → Complete the OAuth flow → Verify status shows "Authenticated"
+
+#### ⚠️ OAuth Troubleshooting Tips
+
+> **Best Practice:** Use an **Incognito/Private browser window** for Named Credential setup to avoid cookie conflicts.
+
+If you encounter issues during OAuth authentication:
+
+| Issue | Solution |
+|-------|----------|
+| Token mismatch error | Refresh the page and retry |
+| OAuth flow not completing | Try in Incognito window |
+| Multiple login prompts | This is expected (see below) |
+
+**Expected behavior for same-org OAuth (loopback):**
+1. First login prompt → Log in
+2. Authorization screen → Click Allow
+3. Second login prompt may appear → Log in again
+4. Final authorization → Click Allow
+5. Verify status shows "Authenticated"
+
+> This multi-step login is normal when the Auth Provider points back to the same org.
 
 ---
 
@@ -75,11 +96,24 @@ The Tooling API allows the app to fetch flow metadata for analysis.
 
 ---
 
-## Step 4: Run Your First Analysis
+## Step 4: Activate Lightning Page
+
+**Important:** Users won't see the Flow AI Audit tab until the Lightning page is activated.
+
+1. **Setup → User Interface → Lightning App Builder**
+2. Find and open **Flow_AI_Audit_Dashboard**
+3. Click **Activation** (top right)
+4. Under "Lightning Experience", click **Assign as Org Default** or assign to specific apps
+5. Under "Profiles", select **System Administrator** (and other profiles as needed)
+6. Click **Save**
+
+---
+
+## Step 5: Run Your First Analysis
 
 1. **App Launcher** → Search "Flow AI Audit Dashboard"
-2. Click **Sync Flows** to load your org's flows
-3. Select a flow → Click **Re-analyze**
+2. Click **Fetch All Flows** to load your org's flows
+3. Select a flow → Click **Run Analysis**
 4. Wait 30-60 seconds for results
 5. Click **View** to see the analysis
 

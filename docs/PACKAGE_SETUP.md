@@ -76,6 +76,28 @@ The Tooling API configuration requires manual steps because OAuth credentials ar
 3. **Save** → Click **Allow** when prompted
 4. Verify status shows **"Authenticated"**
 
+#### ⚠️ Troubleshooting OAuth Authentication
+
+Setting up Named Credentials with OAuth for the same org (loopback) can be tricky. Follow these tips:
+
+| Issue | Solution |
+|-------|----------|
+| **OAuth not completing** | Use an **Incognito/Private browser window** - this avoids cookie conflicts |
+| **Token mismatch error** | Refresh the page and try the authentication again |
+| **Multiple login prompts** | This is expected behavior (see below) |
+
+**Expected OAuth Flow (Multiple Logins):**
+
+Because we're configuring OAuth to authenticate back to the same org, you may experience multiple login prompts:
+
+1. First login prompt → Log in with your credentials
+2. Authorization screen appears → Click **Allow**
+3. Second login prompt may appear → Log in again
+4. Final authorization screen → Click **Allow**
+5. Verify Named Credential shows **"Authenticated"** status
+
+> **Note:** This behavior is normal when setting up a loopback Auth Provider configuration. The multiple prompts occur because the org is both the OAuth provider and consumer.
+
 ### Verify Setup
 
 Run this in Developer Console (Execute Anonymous):
@@ -178,7 +200,25 @@ After installing the package:
 1. **Assign Permission Set**: `Flow_AI_Audit_Access`
 2. **Configure Tooling API**: Follow Steps 1-3 above
 3. **Activate Prompt Template**: Setup → Einstein → Prompt Templates → Activate `FlowAIAudit`
-4. **Add Dashboard to App**: Add `Flow_AI_Audit_Dashboard` to desired Lightning App
+4. **Activate Lightning Page** (Required for visibility - see below)
+
+### Activate Lightning Page for System Administrators
+
+**Important:** Users will not see the Flow AI Audit tab until the Lightning page is activated for their profile.
+
+1. **Setup → User Interface → Lightning App Builder**
+2. Find and open **Flow_AI_Audit_Dashboard**
+3. Click the **Activation** button (top right corner)
+4. Configure activation:
+
+   | Tab | Setting |
+   |-----|---------|
+   | **Lightning Experience** | Click "Assign as Org Default" OR add to specific apps |
+   | **Profiles** | Select **System Administrator** and any other profiles that need access |
+
+5. Click **Save**
+
+> **Note:** Without this activation step, users will not see the Flow AI Audit tab in their Lightning app navigation, even if they have the permission set assigned.
 
 ---
 

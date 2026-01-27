@@ -516,6 +516,28 @@
                         </p>
                     </div>
 
+                    <!-- Lightning Page Activation Alert -->
+                    <div class="slds-box slds-theme_info slds-m-bottom_medium" style="border-left: 4px solid #0176d3;">
+                        <h3 class="slds-text-heading_small slds-m-bottom_small">
+                            <lightning-icon icon-name="utility:desktop" size="x-small"></lightning-icon>
+                            🖥️ Activate Lightning Page
+                        </h3>
+                        <p class="slds-text-body_regular slds-m-bottom_x-small">
+                            <strong>Important:</strong> After deployment, you must activate the Lightning page for users to see the Flow AI Audit tab.
+                        </p>
+                        <ol class="slds-list_ordered slds-m-left_large slds-text-body_small">
+                            <li>Setup → User Interface → Lightning App Builder</li>
+                            <li>Find and open <strong>Flow_AI_Audit_Dashboard</strong></li>
+                            <li>Click <strong>Activation</strong> button (top right)</li>
+                            <li>Under "Lightning Experience", click <strong>Assign as Org Default</strong> or assign to specific apps</li>
+                            <li>Under "Profiles", select <strong>System Administrator</strong> (and other profiles as needed)</li>
+                            <li>Click <strong>Save</strong></li>
+                        </ol>
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                            💡 Without activation, users will not see the Flow AI Audit tab in their navigation.
+                        </p>
+                    </div>
+
                     <!-- Setup Instructions -->
                     <div class="slds-box slds-m-bottom_medium" style="background: #fef8e8; border-left: 4px solid #0176d3;">
                         <h3 class="slds-text-heading_small slds-m-bottom_small">
@@ -555,15 +577,32 @@
                                 <li class="slds-m-bottom_small">
                                     <strong>Create Named Credential:</strong>
                                     <ul class="slds-list_dotted slds-m-left_medium">
-                                        <li>Setup → Security → Named Credentials → New</li>
+                                        <li>Setup → Security → Named Credentials → New Legacy</li>
                                         <li>Label & Name: <code>Salesforce_Tooling_API</code></li>
                                         <li>URL: <code>https://YOUR_DOMAIN.my.salesforce.com</code></li>
                                         <li>Identity Type: Named Principal</li>
                                         <li>Auth Protocol: OAuth 2.0</li>
                                         <li>Auth Provider: ToolingAPILoopback</li>
+                                        <li>Scope: <code>api refresh_token</code></li>
                                         <li>Check "Start Authentication Flow on Save" ✅</li>
                                         <li>Save → Click Allow → Verify "Authenticated" status</li>
                                     </ul>
+                                    <div class="slds-box slds-theme_shade slds-m-top_x-small slds-m-left_medium" style="border-left: 3px solid #fe9339;">
+                                        <p class="slds-text-body_small"><strong>⚠️ Troubleshooting OAuth Authentication:</strong></p>
+                                        <ul class="slds-list_dotted slds-m-left_small slds-text-body_small">
+                                            <li><strong>Use Incognito/Private Window:</strong> Named Credential OAuth works best in an incognito browser window to avoid cookie conflicts.</li>
+                                            <li><strong>Token Mismatch Error:</strong> If you see this error, refresh the page and try again.</li>
+                                            <li><strong>Multiple Login Prompts:</strong> You may be prompted to log in multiple times (this is expected when setting up OAuth for the same org):
+                                                <ol class="slds-list_ordered slds-m-left_small">
+                                                    <li>First login prompt → Log in</li>
+                                                    <li>Authorization screen → Click Allow</li>
+                                                    <li>Second login prompt may appear → Log in again</li>
+                                                    <li>Final authorization → Click Allow</li>
+                                                </ol>
+                                            </li>
+                                            <li>This behavior occurs because we're setting up an Auth Provider that points back to the same org (loopback configuration).</li>
+                                        </ul>
+                                    </div>
                                 </li>
                                 <li>
                                     <strong>Verify Setup:</strong>
