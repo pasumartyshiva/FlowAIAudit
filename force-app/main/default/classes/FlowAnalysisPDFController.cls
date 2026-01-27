@@ -494,6 +494,9 @@ public with sharing class FlowAnalysisPDFController {
             // Return base64 encoded PDF
             return EncodingUtil.base64Encode(pdfBlob);
 
+        } catch (AuraHandledException e) {
+            // Re-throw AuraHandledException as-is to preserve the original message
+            throw e;
         } catch (Exception e) {
             throw new AuraHandledException('Error generating PDF: ' + e.getMessage());
         }
