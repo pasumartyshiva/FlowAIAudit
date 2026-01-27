@@ -25,6 +25,7 @@ public with sharing class FlowAnalysisDashboardController {
                 SELECT Status__c, COUNT(Id) cnt
                 FROM Flow_Analysis__c
                 WHERE Is_Active__c = true
+                WITH USER_MODE
                 GROUP BY Status__c
             ];
 
@@ -68,14 +69,21 @@ public with sharing class FlowAnalysisDashboardController {
 
             // Add search filter
             if (String.isNotBlank(searchTerm)) {
-                String searchPattern = '%' + String.escapeSingleQuotes(searchTerm) + '%';
                 query += 'AND (Flow_API_Name__c LIKE :searchPattern OR Flow_Label__c LIKE :searchPattern) ';
             }
 
             query += 'ORDER BY Last_Analyzed__c DESC NULLS LAST, Flow_Label__c ASC ' +
                      'LIMIT 1000';
 
-            List<Flow_Analysis__c> analyses = Database.query(query);
+            // Use Database.queryWithBinds for security (prevents SOQL injection)
+            Map<String, Object> bindVars = new Map<String, Object>();
+            if (String.isNotBlank(statusFilter) && statusFilter != 'All') {
+                bindVars.put('statusFilter', statusFilter);
+            }
+            if (String.isNotBlank(searchTerm)) {
+                bindVars.put('searchPattern', '%' + String.escapeSingleQuotes(searchTerm) + '%');
+            }
+            List<Flow_Analysis__c> analyses = Database.queryWithBinds(query, bindVars, AccessLevel.USER_MODE);
 
             for (Flow_Analysis__c analysis : analyses) {
                 wrappers.add(new FlowAnalysisWrapper(analysis));
@@ -103,6 +111,7 @@ public with sharing class FlowAnalysisDashboardController {
                        Analysis_Report__c, Raw_Findings__c
                 FROM Flow_Analysis__c
                 WHERE Id = :recordId
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -130,6 +139,7 @@ public with sharing class FlowAnalysisDashboardController {
                 WHERE IsActive = true
                 AND ManageableState = 'unmanaged'
                 AND Label != null
+                WITH USER_MODE
                 ORDER BY Label
                 LIMIT 2000
             ];
@@ -144,6 +154,7 @@ public with sharing class FlowAnalysisDashboardController {
                 SELECT Id, Flow_API_Name__c, Flow_Label__c
                 FROM Flow_Analysis__c
                 WHERE Is_Active__c = true
+                WITH USER_MODE
             ]) {
                 existingAnalyses.put(analysis.Flow_API_Name__c, analysis);
             }
@@ -217,6 +228,7 @@ public with sharing class FlowAnalysisDashboardController {
                 SELECT Id, Flow_API_Name__c, Flow_Label__c, Flow_Version__c
                 FROM Flow_Analysis__c
                 WHERE Id = :recordId
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -226,6 +238,7 @@ public with sharing class FlowAnalysisDashboardController {
                 FROM FlowDefinitionView
                 WHERE ApiName = :analysis.Flow_API_Name__c
                 AND IsActive = true
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -286,6 +299,7 @@ public with sharing class FlowAnalysisDashboardController {
                 SELECT Id, Flow_API_Name__c, Flow_Label__c, Flow_Version__c
                 FROM Flow_Analysis__c
                 WHERE Is_Active__c = true
+                WITH USER_MODE
             ];
 
             if (analyses.isEmpty()) {
@@ -305,6 +319,7 @@ public with sharing class FlowAnalysisDashboardController {
                 FROM FlowDefinitionView
                 WHERE ApiName IN :apiNames
                 AND IsActive = true
+                WITH USER_MODE
                 LIMIT 2000
             ]) {
                 flowMap.put(flow.ApiName, flow);
@@ -391,6 +406,7 @@ public with sharing class FlowAnalysisDashboardController {
                 SELECT Id
                 FROM Flow_Analysis__c
                 WHERE Id IN :recordIds
+                WITH USER_MODE
             ];
 
             Integer count = analysesToDelete.size();
@@ -419,6 +435,7 @@ public with sharing class FlowAnalysisDashboardController {
             List<Flow_Analysis__c> allAnalyses = [
                 SELECT Id
                 FROM Flow_Analysis__c
+                WITH USER_MODE
             ];
 
             Integer count = allAnalyses.size();
@@ -565,7 +582,9 @@ public with sharing class FlowAnalysisDashboardController {
                         // Fallback: query FlowDefinitionView for the label
                         List<FlowDefinitionView> flowDefs = [
                             SELECT Label FROM FlowDefinitionView
-                            WHERE ApiName = :flowApiName AND IsActive = true LIMIT 1
+                            WHERE ApiName = :flowApiName AND IsActive = true 
+                            WITH USER_MODE
+                            LIMIT 1
                         ];
                         if (!flowDefs.isEmpty()) {
                             label = flowDefs[0].Label;
@@ -616,6 +635,7 @@ public with sharing class FlowAnalysisDashboardController {
                 FROM AsyncApexJob
                 WHERE ApexClass.Name = 'FlowAnalysisBatch'
                 AND Status IN ('Queued', 'Processing', 'Preparing')
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -647,6 +667,7 @@ public with sharing class FlowAnalysisDashboardController {
                        CreatedDate, CompletedDate
                 FROM AsyncApexJob
                 WHERE ApexClass.Name = 'FlowAnalysisBatch'
+                WITH USER_MODE
                 ORDER BY CreatedDate DESC
                 LIMIT 1
             ];

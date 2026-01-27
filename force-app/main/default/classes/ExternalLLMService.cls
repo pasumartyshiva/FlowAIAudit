@@ -74,6 +74,7 @@ public with sharing class ExternalLLMService {
                    Max_Tokens__c, Temperature__c, System_Prompt__c
             FROM LLM_Configuration__mdt
             WHERE Is_Active__c = true
+            WITH USER_MODE
             LIMIT 1
         ];
 
