@@ -39,6 +39,7 @@ public with sharing class FlowAnalysisPDFController {
     /**
      * @description Formats the analysis report - converts JSON to HTML if needed
      */
+    @TestVisible
     private String formatAnalysisReport(String reportText) {
         if (String.isBlank(reportText)) {
             return '<p>No analysis report available.</p>';
@@ -77,6 +78,7 @@ public with sharing class FlowAnalysisPDFController {
     /**
      * @description Decodes common HTML entities back to their original characters
      */
+    @TestVisible
     private String decodeHtmlEntities(String text) {
         if (String.isBlank(text)) return text;
         
@@ -107,6 +109,7 @@ public with sharing class FlowAnalysisPDFController {
     /**
      * @description Extracts JSON from markdown code blocks or plain text
      */
+    @TestVisible
     private String extractJsonFromText(String text) {
         if (text == null) return null;
         
@@ -135,6 +138,7 @@ public with sharing class FlowAnalysisPDFController {
     /**
      * @description Generates PDF-safe HTML using tables and bgcolor attributes (old-school HTML for PDF renderer)
      */
+    @TestVisible
     private String generateHtmlFromJson(Map<String, Object> jsonData) {
         String html = '';
         
@@ -407,6 +411,7 @@ public with sharing class FlowAnalysisPDFController {
     /**
      * @description Returns color code for status
      */
+    @TestVisible
     private String getStatusColor(String status) {
         if (status == null) return '#666';
         String statusLower = status.toLowerCase();
@@ -421,6 +426,7 @@ public with sharing class FlowAnalysisPDFController {
     /**
      * @description Maps AI status to user-friendly display (PARTIAL -> NEEDS WORK)
      */
+    @TestVisible
     private String getDisplayStatus(String status) {
         if (status == null) return '';
         String statusLower = status.toLowerCase();
@@ -431,6 +437,7 @@ public with sharing class FlowAnalysisPDFController {
     /**
      * @description Returns CSS class for status badge
      */
+    @TestVisible
     private String getStatusClass(String status) {
         if (status == null) return 'partial';
         String statusLower = status.toLowerCase();
@@ -443,6 +450,7 @@ public with sharing class FlowAnalysisPDFController {
     /**
      * @description Returns color code for severity
      */
+    @TestVisible
     private String getSeverityColor(String severity) {
         if (severity == null) return '#666';
         String severityLower = severity.toLowerCase();

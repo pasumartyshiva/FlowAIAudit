@@ -2,8 +2,9 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Status__c</fullName>
     <label>Status</label>
-    <type>Picklist</type>
     <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
     <valueSet>
         <restricted>true</restricted>
         <valueSetDefinition>
@@ -22,11 +23,6 @@
                 <fullName>Pass</fullName>
                 <default>false</default>
                 <label>Pass</label>
-            </value>
-            <value>
-                <fullName>Partial</fullName>
-                <default>false</default>
-                <label>Partial</label>
             </value>
             <value>
                 <fullName>Needs Work</fullName>

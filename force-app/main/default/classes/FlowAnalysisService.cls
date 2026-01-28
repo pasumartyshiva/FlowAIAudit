@@ -14,6 +14,7 @@ public with sharing class FlowAnalysisService {
      * @param flowVersion The flow version number
      * @return Flow_Analysis__c record (not yet inserted)
      */
+    @TestVisible
     public static Flow_Analysis__c analyzeFlow(
         String flowApiName,
         String flowMetadataXml,
@@ -55,6 +56,7 @@ public with sharing class FlowAnalysisService {
      * Priority: External LLM > Einstein GPT > Fallback error message
      * Falls back to basic analysis if no LLM is available
      */
+    @TestVisible
     private static String callPromptTemplate(String templateName, Map<String, Object> inputs) {
         try {
             // Validate inputs
@@ -150,6 +152,7 @@ public with sharing class FlowAnalysisService {
      * @description Generates a fallback response when no LLM is available
      * This provides clear guidance to the user about what needs to be configured
      */
+    @TestVisible
     private static String generateFallbackResponse(String errorMessage) {
         // Create a structured text response explaining the issue
         String response = '⚠️ LLM CONFIGURATION REQUIRED\n\n';
@@ -194,6 +197,7 @@ public with sharing class FlowAnalysisService {
      * @description Parses the AI response and updates the analysis record
      * Handles both old format (score/status) and new format (overallScore/overallStatus)
      */
+    @TestVisible
     private static void parseAndUpdateAnalysis(Flow_Analysis__c analysis, String aiResponse) {
         try {
             // Store raw response
@@ -269,6 +273,7 @@ public with sharing class FlowAnalysisService {
     /**
      * @description Extracts JSON from response that may be wrapped in markdown code blocks
      */
+    @TestVisible
     private static String extractJsonFromResponse(String response) {
         if (response == null) return null;
         
@@ -300,6 +305,7 @@ public with sharing class FlowAnalysisService {
      * @description Calculates status based on score using balanced rubric:
      * PASS: 70-100%, NEEDS WORK: 40-69%, FAIL: 0-39%
      */
+    @TestVisible
     private static String calculateStatusFromScore(Decimal score) {
         if (score == null) return 'Needs Work';
         
@@ -314,6 +320,7 @@ public with sharing class FlowAnalysisService {
     /**
      * @description Converts plain text/markdown to basic HTML
      */
+    @TestVisible
     private static String convertTextToHtml(String text) {
         if (text == null) return '';
 
@@ -327,6 +334,7 @@ public with sharing class FlowAnalysisService {
      * @description Calculates overall status based on category statuses
      * Uses new rubric: PASS (75-100%), PARTIAL (50-74%), FAIL (0-49%)
      */
+    @TestVisible
     private static String calculateStatusFromCategories(Map<String, Object> jsonResponse) {
         // First check if there's a score we can use
         Object scoreObj = jsonResponse.get('score');
@@ -393,6 +401,7 @@ public with sharing class FlowAnalysisService {
     /**
      * @description Calculates overall score based on category statuses
      */
+    @TestVisible
     private static Decimal calculateScoreFromCategories(Map<String, Object> jsonResponse) {
         List<Object> categories = (List<Object>) jsonResponse.get('categories');
         if (categories == null || categories.isEmpty()) return 50;
@@ -415,6 +424,7 @@ public with sharing class FlowAnalysisService {
     /**
      * @description Extracts status from plain text response
      */
+    @TestVisible
     private static String extractStatusFromText(String text) {
         if (text == null) return 'Pending';
 
@@ -438,6 +448,7 @@ public with sharing class FlowAnalysisService {
     /**
      * @description Extracts score from plain text response
      */
+    @TestVisible
     private static Decimal extractScoreFromText(String text) {
         if (text == null) return null;
 
@@ -456,201 +467,12 @@ public with sharing class FlowAnalysisService {
         return null;
     }
 
-    /**
-     * @description Generates HTML report from JSON response with enhanced category support
-     * Handles both old format and new format with overallScore/overallStatus and categories
-     */
-    private static String generateHtmlReport(Map<String, Object> jsonResponse) {
-        String html = '<div class="flow-analysis-report" style="font-family: Arial, sans-serif; padding: 20px;">';
-        html += '<h1 style="color: #032e61; border-bottom: 3px solid #0176d3; padding-bottom: 10px;">Flow Analysis Report</h1>';
-
-        // Add overall status and score (support both formats)
-        Object scoreObj = jsonResponse.get('overallScore');
-        if (scoreObj == null) scoreObj = jsonResponse.get('score'); // Fallback to old format
-        
-        String status = (String) jsonResponse.get('overallStatus');
-        if (status == null) status = (String) jsonResponse.get('status'); // Fallback to old format
-
-        html += '<div style="background: #f3f3f3; padding: 15px; margin: 20px 0; border-radius: 5px;">';
-        if (status != null) {
-            String statusColor = getStatusColorForHtml(status);
-            html += '<div style="display: inline-block; background: ' + statusColor + '; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; margin-right: 15px;">';
-            html += status.toUpperCase();
-            html += '</div>';
-        }
-        if (scoreObj != null) {
-            html += '<span style="font-size: 24px; font-weight: bold; color: #032e61;">Overall Score: ' + scoreObj + '%</span>';
-        }
-        html += '</div>';
-
-        // Add summary if present
-        String summary = (String) jsonResponse.get('summary');
-        if (String.isNotBlank(summary)) {
-            html += '<div style="background: #f0f9ff; padding: 15px; margin: 20px 0; border-left: 4px solid #0176d3;">';
-            html += '<h3 style="margin: 0 0 10px 0; color: #032e61;">Summary</h3>';
-            html += '<p style="margin: 0;">' + summary + '</p>';
-            html += '</div>';
-        }
-
-        // Add categories with enhanced display (NEW FORMAT)
-        List<Object> categories = (List<Object>) jsonResponse.get('categories');
-        if (categories != null && !categories.isEmpty()) {
-            html += '<h2 style="color: #032e61; margin-top: 30px;">Analysis by Category</h2>';
-            
-            for (Object catObj : categories) {
-                Map<String, Object> category = (Map<String, Object>) catObj;
-                Object numberObj = category.get('number');
-                String name = (String) category.get('name');
-                String icon = (String) category.get('icon');
-                String catStatus = (String) category.get('status');
-                String analysis = (String) category.get('analysis');
-                String explanation = (String) category.get('explanation');
-                String recommendation = (String) category.get('recommendation');
-                List<Object> details = (List<Object>) category.get('details');
-                
-                html += '<div style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 5px solid #0176d3;">';
-                
-                // Category Header
-                html += '<h3 style="color: #0176d3; margin: 0 0 15px 0;">';
-                if (icon != null) html += icon + ' ';
-                if (numberObj != null) html += numberObj + '. ';
-                html += (name != null ? name : 'Category');
-                html += '</h3>';
-                
-                // Status Badge
-                if (catStatus != null) {
-                    String statusColor = getStatusColorForHtml(catStatus);
-                    html += '<div style="margin: 10px 0;">';
-                    html += '<span style="background: ' + statusColor + '; color: white; padding: 6px 14px; border-radius: 4px; font-weight: bold; font-size: 13px; display: inline-block;">';
-                    html += catStatus.toUpperCase();
-                    html += '</span></div>';
-                }
-                
-                // Analysis
-                if (String.isNotBlank(analysis)) {
-                    html += '<p style="font-style: italic; color: #555; margin: 15px 0; font-size: 15px;">' + analysis + '</p>';
-                }
-                
-                // Details
-                if (details != null && !details.isEmpty()) {
-                    for (Object detailObj : details) {
-                        Map<String, Object> detail = (Map<String, Object>) detailObj;
-                        String heading = (String) detail.get('heading');
-                        String content = (String) detail.get('content');
-                        
-                        if (heading != null && content != null) {
-                            html += '<p style="margin: 12px 0;"><strong style="color: #032e61;">' + heading + ':</strong> ' + content + '</p>';
-                        }
-                    }
-                }
-                
-                // Explanation
-                if (String.isNotBlank(explanation)) {
-                    html += '<div style="background: white; padding: 15px; border-left: 4px solid #ffc107; margin: 15px 0; border-radius: 4px;">';
-                    html += '<strong>Explanation:</strong> ' + explanation;
-                    html += '</div>';
-                }
-                
-                // Recommendation
-                if (String.isNotBlank(recommendation)) {
-                    html += '<div style="background: #e7f3ff; padding: 15px; border-left: 4px solid #0176d3; margin: 15px 0; border-radius: 4px;">';
-                    html += '<strong style="color: #0176d3;">Recommendation:</strong> ' + recommendation;
-                    html += '</div>';
-                }
-                
-                html += '</div>';
-            }
-        }
-
-        // Add summary table
-        List<Object> summaryTable = (List<Object>) jsonResponse.get('summaryTable');
-        if (summaryTable != null && !summaryTable.isEmpty()) {
-            html += '<h2 style="color: #032e61; margin-top: 30px; border-bottom: 2px solid #0176d3; padding-bottom: 10px;">Summary Table</h2>';
-            html += '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-            html += '<thead><tr style="background: #0176d3; color: white;">';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #015696;">Area</th>';
-            html += '<th style="padding: 12px; text-align: center; border: 1px solid #015696; width: 120px;">Status</th>';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #015696;">Fix/Recommendation</th>';
-            html += '</tr></thead><tbody>';
-            
-            for (Object rowObj : summaryTable) {
-                Map<String, Object> row = (Map<String, Object>) rowObj;
-                String area = (String) row.get('area');
-                String rowStatus = (String) row.get('status');
-                String fix = (String) row.get('fix');
-                
-                String rowColor = rowStatus != null && rowStatus.equalsIgnoreCase('COMPLIANT') ? '#d4edda' : 
-                                  (rowStatus != null && (rowStatus.equalsIgnoreCase('PARTIAL') || rowStatus.contains('WORK')) ? '#fff3cd' : '#f8d7da');
-                html += '<tr style="background: ' + rowColor + ';">';
-                html += '<td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">' + (area != null ? area : '') + '</td>';
-                html += '<td style="padding: 12px; border: 1px solid #ddd; text-align: center;">' + (rowStatus != null ? rowStatus : '') + '</td>';
-                html += '<td style="padding: 12px; border: 1px solid #ddd;">' + (fix != null ? fix : '') + '</td>';
-                html += '</tr>';
-            }
-            html += '</tbody></table>';
-        }
-
-        // OLD FORMAT: Add findings if present (backward compatibility)
-        List<Object> findings = (List<Object>) jsonResponse.get('findings');
-        if (findings != null && !findings.isEmpty()) {
-            html += '<h2 style="color: #032e61; margin-top: 30px;">Detailed Findings & Recommendations</h2>';
-            html += '<div style="background: white; padding: 15px; border-left: 4px solid #0176d3; margin: 15px 0;">';
-            for (Integer i = 0; i < findings.size(); i++) {
-                Map<String, Object> finding = (Map<String, Object>) findings[i];
-                String area = (String) finding.get('area');
-                if (area == null) area = (String) finding.get('category');
-                String explanation = (String) finding.get('explanation');
-                if (explanation == null) explanation = (String) finding.get('issue');
-                String recommendationText = (String) finding.get('recommendation');
-                String severity = (String) finding.get('severity');
-
-                html += '<div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5;">';
-                html += '<h3 style="color: #0176d3; margin-top: 0;">' + (i+1) + '. ' + (area != null ? area : 'Finding ' + (i+1));
-                if (severity != null) {
-                    String severityColor = getSeverityColorForHtml(severity);
-                    html += ' <span style="display: inline-block; background: ' + severityColor + '; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; margin-left: 10px;">' + severity + '</span>';
-                }
-                html += '</h3>';
-                if (explanation != null) {
-                    html += '<p style="margin: 10px 0;"><strong>Issue:</strong> ' + explanation + '</p>';
-                }
-                if (recommendationText != null) {
-                    html += '<p style="margin: 10px 0; padding: 10px; background: #f0f9ff; border-left: 3px solid #0176d3;"><strong>Recommendation:</strong> ' + recommendationText + '</p>';
-                }
-                html += '</div>';
-            }
-            html += '</div>';
-        }
-
-        // Add strengths if present
-        List<Object> strengths = (List<Object>) jsonResponse.get('strengths');
-        if (strengths != null && !strengths.isEmpty()) {
-            html += '<h3 style="color: #2e844a; margin-top: 20px;">Strengths</h3>';
-            html += '<ul style="color: #2e844a;">';
-            for (Object strength : strengths) {
-                html += '<li>' + String.valueOf(strength) + '</li>';
-            }
-            html += '</ul>';
-        }
-
-        // Add risks if present
-        List<Object> risks = (List<Object>) jsonResponse.get('risks');
-        if (risks != null && !risks.isEmpty()) {
-            html += '<h3 style="color: #c23934; margin-top: 20px;">Risks</h3>';
-            html += '<ul style="color: #c23934;">';
-            for (Object risk : risks) {
-                html += '<li>' + String.valueOf(risk) + '</li>';
-            }
-            html += '</ul>';
-        }
-
-        html += '</div>';
-        return html;
-    }
+    
     
     /**
      * @description Returns color code for status in HTML
      */
+    @TestVisible
     private static String getStatusColorForHtml(String status) {
         if (status == null) return '#666';
         String statusLower = status.toLowerCase();
@@ -663,6 +485,7 @@ public with sharing class FlowAnalysisService {
     /**
      * @description Returns color code for severity in HTML
      */
+    @TestVisible
     private static String getSeverityColorForHtml(String severity) {
         if (severity == null) return '#666';
         String severityLower = severity.toLowerCase();
@@ -677,6 +500,7 @@ public with sharing class FlowAnalysisService {
      * @description Returns the comprehensive assessment framework text
      * This includes all 12 best practice categories with detailed criteria
      */
+    @TestVisible
     private static String getAssessmentFramework() {
         return 'Salesforce Flow Review: Consolidated AI Assessment Prompts\n\n' +
             'Instructions for AI Review:\n' +

@@ -4,21 +4,20 @@
     <externalId>false</externalId>
     <formula>IF(
     ISBLANK(Overall_Score__c),
-    "Not Analyzed",
+    &quot;Not Analyzed&quot;,
     IF(
         Overall_Score__c &gt;= 70,
-        "PASS",
+        &quot;PASS&quot;,
         IF(
             Overall_Score__c &gt;= 40,
-            "NEEDS WORK",
-            "FAIL"
+            &quot;NEEDS WORK&quot;,
+            &quot;FAIL&quot;
         )
     )
 )</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>Overall Status</label>
     <required>false</required>
-    <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
     <type>Text</type>
     <unique>false</unique>

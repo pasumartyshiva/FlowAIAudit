@@ -83,6 +83,7 @@ public with sharing class ExternalLLMService {
      * @param assessmentFramework The assessment framework text
      * @return Combined prompt string
      */
+    @TestVisible
     private static String buildPrompt(String flowMetadataXml, String assessmentFramework) {
         String prompt = 'You are a Salesforce Flow expert performing a comprehensive best practice audit.\n\n';
         prompt += '# TASK\n';
@@ -121,6 +122,7 @@ public with sharing class ExternalLLMService {
      * @param config The LLM configuration
      * @return The API response text
      */
+    @TestVisible
     private static String callGoogleGemini(String prompt, LLM_Configuration__mdt config) {
 
         // Validate API Key
@@ -184,6 +186,7 @@ public with sharing class ExternalLLMService {
      * @param config The LLM configuration
      * @return The API response text
      */
+    @TestVisible
     private static String callAnthropicClaude(String prompt, LLM_Configuration__mdt config) {
 
         // Validate API Key
@@ -245,6 +248,7 @@ public with sharing class ExternalLLMService {
      * @param config The LLM configuration
      * @return The API response text
      */
+    @TestVisible
     private static String callOpenAI(String prompt, LLM_Configuration__mdt config) {
         throw new ExternalLLMException('OpenAI provider is not yet implemented');
     }
@@ -255,6 +259,7 @@ public with sharing class ExternalLLMService {
      * @param config The LLM configuration
      * @return The API response text
      */
+    @TestVisible
     private static String callHuggingFace(String prompt, LLM_Configuration__mdt config) {
 
         // Validate API Key

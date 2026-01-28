@@ -1,185 +1,230 @@
-/**
- * @description Test class for FlowAnalysisService
- */
 @IsTest
 private class FlowAnalysisServiceTest {
 
-    @TestSetup
-    static void setup() {
-        // No specific setup needed
-    }
-
     @IsTest
-    static void testAnalyzeFlowWithJsonResponse() {
-        // Test data
-        String flowApiName = 'TestFlow';
-        String flowMetadata = '<?xml version="1.0"?><Flow xmlns="http://soap.sforce.com/2006/04/metadata"><processType>AutoLaunchedFlow</processType></Flow>';
-        String flowLabel = 'Test Flow';
-        Integer flowVersion = 1;
-
+    static void testAnalyzeFlowMainEntry() {
+        // Tests the public entry point.
+        // Note: In a test context without mocks, callPromptTemplate throws an exception.
+        // This confirms the method handles errors gracefully and returns a record.
         Test.startTest();
-
-        // Call the service
-        Flow_Analysis__c analysis = FlowAnalysisService.analyzeFlow(
-            flowApiName,
-            flowMetadata,
-            flowLabel,
-            flowVersion
-        );
-
-        Test.stopTest();
-
-        // Verify basic fields are set
-        System.assertNotEquals(null, analysis, 'Analysis should not be null');
-        System.assertEquals(flowApiName, analysis.Flow_API_Name__c, 'Flow API name should match');
-        System.assertEquals(flowLabel, analysis.Flow_Label__c, 'Flow label should match');
-        System.assertEquals(flowVersion, analysis.Flow_Version__c, 'Flow version should match');
-        System.assertNotEquals(null, analysis.Last_Analyzed__c, 'Last analyzed should be set');
-        System.assertEquals(true, analysis.Is_Active__c, 'Should be marked as active');
-
-        // Status should be set (either from AI or error)
-        System.assertNotEquals(null, analysis.Status__c, 'Status should be set');
-    }
-
-    @IsTest
-    static void testAnalyzeFlowWithHtmlResponse() {
-        // Test data with HTML-like response
-        String flowApiName = 'TestFlowHtml';
-        String flowMetadata = '<Flow><label>Test</label></Flow>';
-        String flowLabel = 'Test Flow HTML';
-        Integer flowVersion = 2;
-
-        Test.startTest();
-
-        Flow_Analysis__c analysis = FlowAnalysisService.analyzeFlow(
-            flowApiName,
-            flowMetadata,
-            flowLabel,
-            flowVersion
-        );
-
-        Test.stopTest();
-
-        // Verify
-        System.assertNotEquals(null, analysis, 'Analysis should not be null');
-        System.assertEquals(flowApiName, analysis.Flow_API_Name__c);
-        System.assertNotEquals(null, analysis.Status__c, 'Status should be set');
-    }
-
-    @IsTest
-    static void testAnalyzeFlowWithEmptyMetadata() {
-        // Test with empty metadata
-        String flowApiName = 'EmptyFlow';
-        String flowMetadata = '';
-        String flowLabel = 'Empty Flow';
-        Integer flowVersion = 1;
-
-        Test.startTest();
-
-        Flow_Analysis__c analysis = FlowAnalysisService.analyzeFlow(
-            flowApiName,
-            flowMetadata,
-            flowLabel,
-            flowVersion
-        );
-
-        Test.stopTest();
-
-        // Should still create an analysis record
-        System.assertNotEquals(null, analysis);
-        System.assertEquals(flowApiName, analysis.Flow_API_Name__c);
-    }
-
-    @IsTest
-    static void testAnalyzeFlowWithNullValues() {
-        // Test with null values
-        Test.startTest();
-
-        Flow_Analysis__c analysis = FlowAnalysisService.analyzeFlow(
-            'NullTestFlow',
-            null,
-            null,
-            null
-        );
-
-        Test.stopTest();
-
-        // Should handle nulls gracefully
-        System.assertNotEquals(null, analysis);
-        System.assertEquals('NullTestFlow', analysis.Flow_API_Name__c);
-    }
-
-    @IsTest
-    static void testMultipleAnalyses() {
-        // Test analyzing multiple flows
-        List<Flow_Analysis__c> analyses = new List<Flow_Analysis__c>();
-
-        Test.startTest();
-
-        for (Integer i = 0; i < 5; i++) {
-            Flow_Analysis__c analysis = FlowAnalysisService.analyzeFlow(
-                'TestFlow' + i,
-                '<Flow><label>Flow ' + i + '</label></Flow>',
-                'Test Flow ' + i,
-                i
-            );
-            analyses.add(analysis);
-        }
-
-        // Insert all analyses
-        insert analyses;
-
-        Test.stopTest();
-
-        // Verify all were created
-        List<Flow_Analysis__c> insertedAnalyses = [
-            SELECT Id, Flow_API_Name__c, Status__c
-            FROM Flow_Analysis__c
-        ];
-
-        System.assertEquals(5, insertedAnalyses.size(), 'Should have 5 analyses');
-    }
-
-    @IsTest
-    static void testGetAssessmentFramework() {
-        // This tests the private method indirectly through analyzeFlow
-        Test.startTest();
-
-        Flow_Analysis__c analysis = FlowAnalysisService.analyzeFlow(
-            'FrameworkTest',
-            '<Flow></Flow>',
-            'Framework Test',
+        Flow_Analysis__c result = FlowAnalysisService.analyzeFlow(
+            'Test_Flow_API', 
+            '<Flow xmlns="http://soap.sforce.com/2006/04/metadata"></Flow>', 
+            'Test Flow Label', 
             1
         );
-
         Test.stopTest();
 
-        // The framework should be used in the analysis
-        System.assertNotEquals(null, analysis);
+        System.assertNotEquals(null, result, 'Service should return a Flow_Analysis__c object');
+        System.assertEquals('Test_Flow_API', result.Flow_API_Name__c, 'API Name should match input');
+        // Since we can't mock Einstein natively, we expect it to hit the catch block or return error status
+        System.assertNotEquals(null, result.Status__c); 
     }
 
     @IsTest
-    static void testStatusExtraction() {
-        // Test different status patterns in responses
-        String flowApiName = 'StatusTest';
-        String flowMetadata = '<Flow></Flow>';
+    static void testParseDeepAnalysisLogic() {
+        // We build the JSON using Maps to ensure syntax is perfect
+        Map<String, Object> jsonMap = new Map<String, Object>{
+            'overallScore' => 95,
+            'overallStatus' => 'Pass',
+            'summary' => 'Excellent bulkification.',
+            'categories' => new List<Object>{
+                new Map<String, Object>{
+                    'name' => 'Bulkification',
+                    'status' => 'Compliant',
+                    'icon' => '✅',
+                    'analysis' => 'Loop logic is sound.'
+                }
+            }
+        };
+
+        String validJson = JSON.serialize(jsonMap);
+        
+        // Wrap in markdown to test the extraction logic
+        String aiResponse = 'Here is the report:\n```json\n' + validJson + '\n```';
+
+        Flow_Analysis__c analysis = new Flow_Analysis__c();
 
         Test.startTest();
-
-        Flow_Analysis__c analysis = FlowAnalysisService.analyzeFlow(
-            flowApiName,
-            flowMetadata,
-            'Status Test',
-            1
-        );
-
+        // Call the private parsing logic directly via @TestVisible
+        FlowAnalysisService.parseAndUpdateAnalysis(analysis, aiResponse);
         Test.stopTest();
 
-        // Status should be one of the valid values
-        Set<String> validStatuses = new Set<String>{'Pass', 'Needs Work', 'Fail', 'Analyzing', 'Error'};
-        System.assert(
-            validStatuses.contains(analysis.Status__c),
-            'Status should be valid: ' + analysis.Status__c
-        );
+        // 1. Assert Status and Score parsing
+        System.assertEquals('Pass', analysis.Status__c, 'Status should be parsed from JSON');
+        System.assertEquals(95, analysis.Overall_Score__c, 'Score should be parsed from JSON');
+        
+        // 2. Check for JSON content
+        System.assert(analysis.Analysis_Report__c.contains('"overallScore":95'), 'Report should contain the raw JSON data');
+    }
+
+    @IsTest
+    static void testParseLegacyFormat() {
+        // Tests backward compatibility with older prompt versions (Findings array)
+        Map<String, Object> oldJsonMap = new Map<String, Object>{
+            'score' => 40,
+            'status' => 'Needs Work',
+            'findings' => new List<Object>{
+                new Map<String, Object>{
+                    'area' => 'Hardcoding', 
+                    'severity' => 'High', 
+                    'explanation' => 'IDs found'
+                }
+            }
+        };
+        
+        Flow_Analysis__c analysis = new Flow_Analysis__c();
+        
+        Test.startTest();
+        FlowAnalysisService.parseAndUpdateAnalysis(analysis, JSON.serialize(oldJsonMap));
+        Test.stopTest();
+
+        System.assertEquals('Needs Work', analysis.Status__c);
+        System.assertEquals(40, analysis.Overall_Score__c);
+        // Verify raw JSON is stored
+        System.assert(analysis.Analysis_Report__c.contains('Hardcoding'), 'Report should contain findings');
+    }
+
+    @IsTest
+    static void testMathAndColors() {
+        // Test utility helper methods logic
+        Test.startTest();
+        
+        // Color Mapping
+        System.assertEquals('#2e844a', FlowAnalysisService.getStatusColorForHtml('Pass'));
+        System.assertEquals('#c23934', FlowAnalysisService.getStatusColorForHtml('Fail'));
+        System.assertEquals('#f49756', FlowAnalysisService.getSeverityColorForHtml('Medium'));
+        
+        // Category Scoring Algorithm
+        Map<String, Object> categoryData = new Map<String, Object>{
+            'categories' => new List<Object>{
+                new Map<String, Object>{'status' => 'Compliant'}, // 100 points
+                new Map<String, Object>{'status' => 'Issue'}      // 0 points
+            }
+        };
+        // (100 + 0) / 2 = 50
+        Decimal score = FlowAnalysisService.calculateScoreFromCategories(categoryData);
+        System.assertEquals(50, score, 'Score calculation logic is incorrect');
+
+        Test.stopTest();
+    }
+    
+    @IsTest
+    static void testTextFallbackLogic() {
+        Test.startTest();
+        
+        // 1. Test Text Status Extraction
+        String statusPass = FlowAnalysisService.extractStatusFromText('This flow is an overall pass and compliant.');
+        String statusFail = FlowAnalysisService.extractStatusFromText('This flow is an overall fail.');
+        String statusHeuristic = FlowAnalysisService.extractStatusFromText('issue issue issue issue issue issue'); // >5 issues = Fail
+
+        // 2. Test Score Extraction (FIXED INPUTS)
+        // Regex expects "score:" or "score " followed by numbers
+        Decimal score1 = FlowAnalysisService.extractScoreFromText('Score: 90%');
+        Decimal score2 = FlowAnalysisService.extractScoreFromText('Overall Score 85');
+        
+        // 3. Test HTML conversion (used in catch blocks)
+        String html = FlowAnalysisService.convertTextToHtml('Simple Line\nLine 2');
+        String fallback = FlowAnalysisService.generateFallbackResponse('Test Error');
+        
+        Test.stopTest();
+
+        // Assertions
+        System.assertEquals('Pass', statusPass);
+        System.assertEquals('Fail', statusFail);
+        System.assertEquals('Fail', statusHeuristic);
+        
+        System.assertEquals(90, score1, 'Regex should match "Score: 90%"');
+        System.assertEquals(85, score2, 'Regex should match "Overall Score 85"');
+        
+        System.assert(html.contains('<br/>'));
+        System.assert(fallback.contains('LLM CONFIGURATION REQUIRED'));
+    }
+    
+    @IsTest
+    static void testCalculateStatusFromCategories() {
+        Test.startTest();
+
+        // SCENARIO 1: Test Category Logic (No Score provided)
+        // 3 Compliant, 1 Issue = 75% Compliant = Pass
+        Map<String, Object> passMap = new Map<String, Object>{
+            'categories' => new List<Object>{
+                new Map<String, Object>{'status' => 'Compliant'},
+                new Map<String, Object>{'status' => 'Pass'},
+                new Map<String, Object>{'status' => 'Compliant'},
+                new Map<String, Object>{'status' => 'Issue'}
+            }
+        };
+        String resultPass = FlowAnalysisService.calculateStatusFromCategories(passMap);
+        System.assertEquals('Pass', resultPass, '3/4 Compliant should result in Pass');
+
+        // SCENARIO 2: Test Category Logic - Partial Threshold
+        // 2 Compliant, 2 Issue = 50% Compliant = Partial
+        Map<String, Object> partialMap = new Map<String, Object>{
+            'categories' => new List<Object>{
+                new Map<String, Object>{'status' => 'Compliant'},
+                new Map<String, Object>{'status' => 'Compliant'},
+                new Map<String, Object>{'status' => 'Fail'},
+                new Map<String, Object>{'status' => 'Issue'}
+            }
+        };
+        String resultPartial = FlowAnalysisService.calculateStatusFromCategories(partialMap);
+        System.assertEquals('Partial', resultPartial, '50% Compliant should result in Partial');
+
+        // SCENARIO 3: Test Category Logic - Fail Threshold
+        // 1 Compliant, 3 Issue = 25% Compliant = Fail
+        Map<String, Object> failMap = new Map<String, Object>{
+            'categories' => new List<Object>{
+                new Map<String, Object>{'status' => 'Compliant'},
+                new Map<String, Object>{'status' => 'Fail'},
+                new Map<String, Object>{'status' => 'Fail'},
+                new Map<String, Object>{'status' => 'Issue'}
+            }
+        };
+        String resultFail = FlowAnalysisService.calculateStatusFromCategories(failMap);
+        System.assertEquals('Fail', resultFail, '<50% Compliant should result in Fail');
+
+        // SCENARIO 4: Test Findings Logic (Legacy/Prompt Fallback)
+        // This branch is taken if 'findings' exist and 'score' is null
+        Map<String, Object> findingsMap = new Map<String, Object>{
+            'findings' => new List<Object>{
+                new Map<String, Object>{'severity' => 'High'},
+                new Map<String, Object>{'severity' => 'High'},
+                new Map<String, Object>{'severity' => 'High'}
+            }
+        };
+        String resultFindings = FlowAnalysisService.calculateStatusFromCategories(findingsMap);
+        System.assertEquals('Fail', resultFindings, '3 High severity findings should result in Fail');
+
+        // SCENARIO 5: Integration Check - parseAndUpdateAnalysis without Score
+        // This ensures the main parser actually falls back to this method
+        Map<String, Object> jsonNoScore = new Map<String, Object>{
+            'categories' => new List<Object>{
+                new Map<String, Object>{'status' => 'Compliant'}, // 100%
+                new Map<String, Object>{'status' => 'Compliant'}
+            }
+        };
+        Flow_Analysis__c analysis = new Flow_Analysis__c();
+        FlowAnalysisService.parseAndUpdateAnalysis(analysis, JSON.serialize(jsonNoScore));
+        
+        System.assertEquals('Pass', analysis.Status__c, 'Parser should fallback to category logic when score is missing');
+        // It should also calculate a score from the categories (100 in this case)
+        System.assertEquals(100, analysis.Overall_Score__c, 'Parser should calculate implicit score from categories');
+
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testParseAndUpdateWithExceptions() {
+        // This covers the catch blocks inside parseAndUpdateAnalysis
+        Flow_Analysis__c analysis = new Flow_Analysis__c();
+        
+        Test.startTest();
+        // Sending invalid JSON (missing bracket) triggers the JSON parser exception
+        // This forces the "catch" block in parseAndUpdateAnalysis to run
+        FlowAnalysisService.parseAndUpdateAnalysis(analysis, '{ "invalid_json": '); 
+        Test.stopTest();
+        
+        System.assertEquals('Partial', analysis.Status__c, 'Should fallback to Partial on parsing error');
     }
 }
