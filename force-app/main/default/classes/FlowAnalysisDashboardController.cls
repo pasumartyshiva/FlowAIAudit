@@ -190,8 +190,21 @@ public with sharing class FlowAnalysisDashboardController {
                 recordsToUpsertMap.put(flow.ApiName, analysis);
             }
 
-            // Upsert all records
+            // Upsert all records with FLS check
             if (!recordsToUpsertMap.isEmpty()) {
+                // Check FLS permissions before DML
+                if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_API_Name__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Is_Active__c.isCreateable()) {
+                    throw new AuraHandledException('Insufficient permissions to create Flow_Analysis__c records');
+                }
+                if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isUpdateable()) {
+                    throw new AuraHandledException('Insufficient permissions to update Flow_Analysis__c records');
+                }
+
                 upsert recordsToUpsertMap.values() Flow_Analysis__c.Flow_API_Name__c;
             }
 
@@ -262,6 +275,16 @@ public with sharing class FlowAnalysisDashboardController {
                 analysis.Overall_Score__c = null;
                 analysis.Analysis_Report__c = null;
                 analysis.Last_Analyzed__c = null;
+            }
+
+            // Check FLS permissions before update
+            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Overall_Score__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
+                throw new AuraHandledException('Insufficient permissions to update Flow_Analysis__c fields');
             }
 
             update analysis;
@@ -361,6 +384,16 @@ public with sharing class FlowAnalysisDashboardController {
             }
 
             if (!toUpdate.isEmpty()) {
+                // Check FLS permissions before update
+                if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Overall_Score__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
+                    throw new AuraHandledException('Insufficient permissions to update Flow_Analysis__c fields');
+                }
+
                 update toUpdate;
             }
 
@@ -409,6 +442,11 @@ public with sharing class FlowAnalysisDashboardController {
                 return 'No records found to delete';
             }
 
+            // Check delete permission before DML
+            if (!Schema.sObjectType.Flow_Analysis__c.isDeletable()) {
+                throw new AuraHandledException('Insufficient permissions to delete Flow_Analysis__c records');
+            }
+
             delete analysesToDelete;
 
             return count + ' record(s) deleted successfully';
@@ -435,6 +473,11 @@ public with sharing class FlowAnalysisDashboardController {
 
             if (count == 0) {
                 return 'No records to delete';
+            }
+
+            // Check delete permission before DML
+            if (!Schema.sObjectType.Flow_Analysis__c.isDeletable()) {
+                throw new AuraHandledException('Insufficient permissions to delete Flow_Analysis__c records');
             }
 
             delete allAnalyses;
@@ -499,6 +542,24 @@ public with sharing class FlowAnalysisDashboardController {
                 flowData.label,
                 flowData.version
             );
+
+            // Check FLS permissions before upsert
+            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_API_Name__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Is_Active__c.isCreateable()) {
+                throw new AuraHandledException('Insufficient permissions to create Flow_Analysis__c records');
+            }
+            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Overall_Score__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
+                throw new AuraHandledException('Insufficient permissions to update Flow_Analysis__c records');
+            }
 
             // Upsert the analysis
             upsert analysis Flow_Analysis__c.Flow_API_Name__c;
