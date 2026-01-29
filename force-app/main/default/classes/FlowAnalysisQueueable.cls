@@ -67,29 +67,38 @@ public with sharing class FlowAnalysisQueueable implements Queueable, Database.A
             );
 
             // Check FLS permissions before upsert
-            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_API_Name__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Is_Active__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isCreateable()) {
-                throw new SecurityException('Insufficient permissions to create Flow_Analysis__c records');
-            }
-            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isUpdateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Overall_Score__c.isUpdateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
-                throw new SecurityException('Insufficient permissions to update Flow_Analysis__c records');
-            }
+            checkFlsPermissionsForUpsert();
 
             // Upsert the analysis
             upsert analysis Flow_Analysis__c.Flow_API_Name__c;
 
         } catch (Exception e) {
             createErrorAnalysis('Error processing flow: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * @description Checks FLS permissions for upsert operation
+     * Extracted into separate method for testability
+     */
+    @TestVisible
+    private void checkFlsPermissionsForUpsert() {
+        if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_API_Name__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Is_Active__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isCreateable()) {
+            throw new SecurityException('Insufficient permissions to create Flow_Analysis__c records');
+        }
+        if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isUpdateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Overall_Score__c.isUpdateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
+            throw new SecurityException('Insufficient permissions to update Flow_Analysis__c records');
         }
     }
 
@@ -156,26 +165,34 @@ public with sharing class FlowAnalysisQueueable implements Queueable, Database.A
 
         try {
             // Check FLS permissions before upsert
-            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_API_Name__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isCreateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Is_Active__c.isCreateable()) {
-                // Silently fail if no permissions - this is error handling path
-                return;
-            }
-            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
-                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
-                // Silently fail if no permissions - this is error handling path
-                return;
-            }
-
+            checkFlsPermissionsForErrorAnalysis();
             upsert errorAnalysis Flow_Analysis__c.Flow_API_Name__c;
         } catch (Exception e) {
             // Silently fail - this is already an error handling path
+        }
+    }
+
+    /**
+     * @description Checks FLS permissions for error analysis upsert
+     * Extracted into separate method for testability
+     */
+    @TestVisible
+    private void checkFlsPermissionsForErrorAnalysis() {
+        if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_API_Name__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isCreateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Is_Active__c.isCreateable()) {
+            // Silently fail if no permissions - this is error handling path
+            return;
+        }
+        if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
+            !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
+            // Silently fail if no permissions - this is error handling path
+            return;
         }
     }
 
