@@ -3,7 +3,7 @@
  * Uses HTTP callouts to Tooling API to fetch flow metadata
  * Can handle 1000+ flows efficiently
  */
-public class FlowAnalysisBatch implements Database.Batchable<String>, Database.AllowsCallouts, Database.Stateful {
+public with sharing class FlowAnalysisBatch implements Database.Batchable<String>, Database.AllowsCallouts, Database.Stateful {
 
     private Integer totalProcessed = 0;
     private Integer totalSuccess = 0;
@@ -115,6 +115,25 @@ public class FlowAnalysisBatch implements Database.Batchable<String>, Database.A
         // Upsert all analysis records
         if (!analysesToUpsert.isEmpty()) {
             try {
+                // Check FLS permissions before upsert
+                if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_API_Name__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Is_Active__c.isCreateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isCreateable()) {
+                    throw new SecurityException('Insufficient permissions to create Flow_Analysis__c records');
+                }
+                if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Overall_Score__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
+                    !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
+                    throw new SecurityException('Insufficient permissions to update Flow_Analysis__c records');
+                }
+
                 Database.UpsertResult[] results = Database.upsert(
                     analysesToUpsert,
                     Flow_Analysis__c.Flow_API_Name__c,

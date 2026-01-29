@@ -3,7 +3,7 @@
  * Uses HTTP callouts to Tooling API to fetch flow metadata
  * Can be chained for processing multiple flows asynchronously
  */
-public class FlowAnalysisQueueable implements Queueable, Database.AllowsCallouts {
+public with sharing class FlowAnalysisQueueable implements Queueable, Database.AllowsCallouts {
 
     private String flowApiName;
     private List<String> remainingFlowApiNames;
@@ -65,6 +65,25 @@ public class FlowAnalysisQueueable implements Queueable, Database.AllowsCallouts
                 flowData.label != null ? flowData.label : flowApiName,
                 1
             );
+
+            // Check FLS permissions before upsert
+            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_API_Name__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Is_Active__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isCreateable()) {
+                throw new SecurityException('Insufficient permissions to create Flow_Analysis__c records');
+            }
+            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Overall_Score__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
+                throw new SecurityException('Insufficient permissions to update Flow_Analysis__c records');
+            }
 
             // Upsert the analysis
             upsert analysis Flow_Analysis__c.Flow_API_Name__c;
@@ -136,8 +155,27 @@ public class FlowAnalysisQueueable implements Queueable, Database.AllowsCallouts
         );
 
         try {
+            // Check FLS permissions before upsert
+            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_API_Name__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isCreateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Is_Active__c.isCreateable()) {
+                // Silently fail if no permissions - this is error handling path
+                return;
+            }
+            if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Status__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Analysis_Report__c.isUpdateable() ||
+                !Schema.sObjectType.Flow_Analysis__c.fields.Last_Analyzed__c.isUpdateable()) {
+                // Silently fail if no permissions - this is error handling path
+                return;
+            }
+
             upsert errorAnalysis Flow_Analysis__c.Flow_API_Name__c;
         } catch (Exception e) {
+            // Silently fail - this is already an error handling path
         }
     }
 
