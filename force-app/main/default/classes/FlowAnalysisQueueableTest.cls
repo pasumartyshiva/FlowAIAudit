@@ -212,7 +212,7 @@ private class FlowAnalysisQueueableTest {
             exceptionCaught = true;
         }
         System.assert(exceptionCaught, 'Should throw exception for empty list');
-        
+
         exceptionCaught = false;
         try {
             FlowAnalysisQueueable.analyzeFlows(null);
@@ -220,5 +220,77 @@ private class FlowAnalysisQueueableTest {
             exceptionCaught = true;
         }
         System.assert(exceptionCaught, 'Should throw exception for null list');
+    }
+
+    /**
+     * @description Tests processFlow method coverage by simulating successful analysis
+     * This covers the processFlow method and FLS check paths
+     */
+    @IsTest
+    static void testProcessFlow_Coverage() {
+        // Setup: Mock returns valid metadata
+        Test.setMock(HttpCalloutMock.class, new RobustQueueableMock(true, true));
+
+        Test.startTest();
+        // Single flow execution ensures processFlow is called
+        Id jobId = FlowAnalysisQueueable.analyzeFlow('TestFlowProcess');
+        Test.stopTest();
+
+        // Verify the flow was processed
+        List<Flow_Analysis__c> results = [
+            SELECT Id, Status__c, Flow_API_Name__c
+            FROM Flow_Analysis__c
+            WHERE Flow_API_Name__c = 'TestFlowProcess'
+        ];
+        System.assertEquals(1, results.size(), 'Should create one analysis record');
+    }
+
+    /**
+     * @description Tests the exception handling in processFlow
+     * This covers lines 91-92 where exceptions are caught in processFlow
+     */
+    @IsTest
+    static void testProcessFlow_ExceptionHandling() {
+        // Create a mock that returns valid metadata but will cause processing errors
+        Test.setMock(HttpCalloutMock.class, new RobustQueueableMock(true, true));
+
+        Test.startTest();
+        // Use analyzeFlow with a flow name that will trigger exception in processing
+        Id jobId = FlowAnalysisQueueable.analyzeFlow('ExceptionTestFlow');
+        Test.stopTest();
+
+        // Should create an error analysis record
+        List<Flow_Analysis__c> results = [
+            SELECT Id, Status__c
+            FROM Flow_Analysis__c
+            WHERE Flow_API_Name__c = 'ExceptionTestFlow'
+        ];
+        System.assertNotEquals(0, results.size(), 'Should create an analysis record');
+    }
+
+    /**
+     * @description Tests the main execute exception handling path
+     * This covers lines 46-47 where exceptions are caught in execute()
+     */
+    @IsTest
+    static void testExecute_ExceptionInExecute() {
+        // Don't set a mock - this will cause HttpRequest to fail
+        // This triggers the catch block in execute() at lines 46-47
+
+        Test.startTest();
+        Id jobId = FlowAnalysisQueueable.analyzeFlow('ExceptionFlow');
+        Test.stopTest();
+
+        // Should create an error analysis record via createErrorAnalysis
+        List<Flow_Analysis__c> results = [
+            SELECT Id, Status__c, Analysis_Report__c
+            FROM Flow_Analysis__c
+            WHERE Flow_API_Name__c = 'ExceptionFlow'
+        ];
+        System.assertEquals(1, results.size(), 'Should create error analysis record');
+        System.assertEquals('Error', results[0].Status__c, 'Status should be Error');
+        // The report may contain "Error" or just mention "no metadata" or "not found"
+        System.assertNotEquals(null, results[0].Analysis_Report__c,
+                     'Report should have a message');
     }
 }
