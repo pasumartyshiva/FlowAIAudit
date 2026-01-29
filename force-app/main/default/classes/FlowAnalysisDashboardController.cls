@@ -171,6 +171,11 @@ public with sharing class FlowAnalysisDashboardController {
 
                 if (existingAnalyses.containsKey(flow.ApiName)) {
                     // Update existing record (refresh label and version)
+                    // Check FLS permissions before modifying existing record
+                    if (!Schema.sObjectType.Flow_Analysis__c.fields.Flow_Label__c.isUpdateable() ||
+                        !Schema.sObjectType.Flow_Analysis__c.fields.Flow_Version__c.isUpdateable()) {
+                        throw new AuraHandledException('Insufficient permissions to update Flow_Analysis__c records');
+                    }
                     analysis = existingAnalyses.get(flow.ApiName);
                     analysis.Flow_Label__c = flow.Label;
                     analysis.Flow_Version__c = flow.VersionNumber;
