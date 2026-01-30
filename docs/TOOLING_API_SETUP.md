@@ -70,7 +70,7 @@ Example Consumer Key:
 - **Consumer Secret**: Paste the Consumer Secret from Step 1.4
 - **Authorize Endpoint URL**: Leave blank (defaults to Salesforce)
 - **Token Endpoint URL**: Leave blank (defaults to Salesforce)
-- **Default Scopes**: `api refresh_token`
+- **Default Scopes**: `full refresh_token offline_access`
 
 ### 2.3 Save and Note the Auth Provider ID
 After saving, note the Auth Provider ID (format: `0SOXXXXXXXXXXXXXX`)
@@ -100,14 +100,57 @@ Auth Provider ID: 0SOKY000000ajPy4AI
 - **Identity Type**: `Named Principal`
 - **Authentication Protocol**: `OAuth 2.0`
 - **Authentication Provider**: Select `ToolingAPILoopback` (created in Step 2)
-- **Scope**: `api refresh_token`
+- **Scope**: `full refresh_token offline_access`
 - **Start Authentication Flow on Save**: ✅ Check this box
 
 ### 3.3 Complete Authentication
+
+⚠️ **Important**: Use an **incognito/private browser window** for OAuth authentication to avoid cookie conflicts.
+
 1. Click **Save**
 2. You'll be redirected to authenticate
-3. Click **Allow** to grant permissions
+3. You may encounter multiple login prompts (this is expected for loopback configuration):
+   - **First login prompt** → Enter your Salesforce credentials and log in
+   - **Authorization screen** → Click **Allow** to grant permissions
+   - **Second login prompt may appear** → Log in again (same credentials)
+   - **Final authorization screen** → Click **Allow**
 4. You'll be redirected back to the Named Credential page
+
+**Why Multiple Login Prompts?**
+This behavior occurs because we're setting up an Auth Provider that points back to the same org (loopback configuration). The system needs to authenticate both the initial request and the callback.
+
+### 3.4 Troubleshooting OAuth Authentication
+
+#### Issue: Token Mismatch Error
+**Solution**: If you see a "Token Mismatch" or similar error:
+1. Refresh the browser page
+2. Try the authentication flow again
+3. Ensure you're using an incognito/private window
+
+#### Issue: Authentication Fails or Loops
+**Solution**:
+1. Clear your browser cache and cookies
+2. Open a new incognito/private window
+3. Navigate to Setup → Named Credentials
+4. Edit the Named Credential and restart the authentication flow
+
+#### Issue: "Authentication Failed" After Clicking Allow
+**Solution**: Temporarily extend OAuth scope to include `full` access:
+1. Go to **Setup** → **Apps** → **App Manager**
+2. Find your Connected App (`Tooling API Access`)
+3. Click the dropdown → **Edit**
+4. In **Selected OAuth Scopes**, ensure **Full access (full)** is included
+5. Click **Save**
+6. Return to Named Credential and retry authentication
+7. **After successful authentication**, you can edit the Connected App to remove `full` scope and keep only: `api`, `refresh_token`, `offline_access`
+
+#### Issue: Redirect Loop or "Invalid Grant" Error
+**Solution**: Check that callback URL in Connected App matches exactly:
+```
+https://YOUR_ORG_DOMAIN.my.salesforce.com/services/authcallback/ToolingAPILoopback
+```
+- Ensure `YOUR_ORG_DOMAIN` matches your actual org domain
+- The URL suffix `ToolingAPILoopback` must match the Auth Provider URL Suffix exactly
 
 ---
 
@@ -203,7 +246,7 @@ public class FlowMetadataService {
 
 ---
 
-## Troubleshooting
+## Additional Troubleshooting
 
 ### Issue: "Unauthorized endpoint" error
 
@@ -221,7 +264,7 @@ public class FlowMetadataService {
 1. Go to **Setup** → **Security** → **Named Credentials**
 2. Click **Edit** on `Salesforce_Tooling_API`
 3. Check **Start Authentication Flow on Save**
-4. Click **Save**
+4. Click **Save** (use incognito window)
 5. Complete the authentication flow
 
 ### Issue: "Insufficient privileges"
@@ -234,76 +277,18 @@ public class FlowMetadataService {
 5. **IP Relaxation**: `Relax IP restrictions`
 6. Click **Save**
 
-### Issue: "INVALID_SESSION_ID"
+### Issue: API Calls Return 401 or 403 Errors
 
-**Solution**: Check OAuth scopes
-1. Edit the Connected App
-2. Ensure these scopes are enabled:
-   - `api`
-   - `refresh_token`
-   - `id`
-3. Save and re-authenticate the Named Credential
-
----
-
-### Debugging Tip: Authentication Issues with Named Credential
-
-If you're experiencing authentication failures when setting up the Named Credential, try this workaround:
-
-**Problem**: Named Credential authentication fails even with correct OAuth scopes configured.
-
-**Solution**: Temporarily extend API access to "Full" during authentication, then revert to standard scopes.
-
-#### Step-by-Step Process:
-
-1. **Before Authenticating the Named Credential:**
-   - Go to **Setup** → **Apps** → **App Manager**
-   - Find your Connected App (`Tooling API Access`)
-   - Click the dropdown → **Edit**
-   - Scroll to **OAuth Settings**
-
-2. **Temporarily Add Full Access:**
-   - In the **Selected OAuth Scopes** section, add:
-     - ✅ **Full access (full)**
-   - Click **Save**
-
-3. **Authenticate the Named Credential:**
-   - Go to **Setup** → **Security** → **Named Credentials**
-   - Click **Edit** on `Salesforce_Tooling_API`
-   - Check **"Start Authentication Flow on Save"**
-   - Click **Save**
-   - Complete the OAuth authentication flow
-   - Click **Allow** when prompted
-
-4. **Verify Authentication Success:**
-   - Confirm the Named Credential shows **Authentication Status: Authenticated**
-
-5. **Remove Full Access (IMPORTANT):**
-   - Go back to **Setup** → **Apps** → **App Manager**
-   - Edit your Connected App again
-   - In **Selected OAuth Scopes**, remove:
-     - ❌ **Full access (full)**
-   - Keep only these scopes:
-     - ✅ **Access the identity URL service (id, profile, email, address, phone)**
-     - ✅ **Manage user data via APIs (api)**
-     - ✅ **Perform requests at any time (refresh_token, offline_access)**
-   - Click **Save**
-
-6. **Test the Named Credential:**
-   - The Named Credential should remain authenticated
-   - Test with the Anonymous Apex code from Step 4.2
-   - Verify the API calls work correctly
-
-**Why This Works:**
-- Some orgs have strict OAuth policies that can block initial authentication with limited scopes
-- Temporarily granting `full` access allows the OAuth flow to complete successfully
-- Once authenticated, the refresh token works with the more restrictive `api` and `refresh_token` scopes
-- Removing `full` access after authentication follows the principle of least privilege
-
-**Security Note:**
-- Always remove the `full` access scope after authentication completes
-- The application only needs `api` and `refresh_token` for Tooling API access
-- Leaving `full` access enabled is a security risk and not recommended for production
+**Solution**: Verify OAuth scopes in Connected App
+1. Go to **Setup** → **Apps** → **App Manager**
+2. Edit your Connected App (`Tooling API Access`)
+3. Ensure these scopes are enabled in **Selected OAuth Scopes**:
+   - ✅ **Access the identity URL service (id, profile, email, address, phone)**
+   - ✅ **Manage user data via APIs (api)**
+   - ✅ **Perform requests at any time (refresh_token, offline_access)**
+   - ✅ **Full access (full)** (can be removed after authentication succeeds)
+4. Click **Save**
+5. Re-authenticate the Named Credential if needed
 
 ---
 
@@ -327,6 +312,23 @@ Once setup is complete, you should have:
 3. **Regular Audits** - Review who has access to the Named Credential
 4. **IP Restrictions** - Consider adding IP restrictions to the Connected App in production
 5. **Session Security** - Enable high assurance sessions for sensitive operations
+6. **Reduce OAuth Scopes After Authentication** (Recommended for Production):
+   - After successfully authenticating the Named Credential with `full refresh_token offline_access` scope
+   - Edit the Connected App and remove the `full` scope
+   - Keep only the minimum required scopes: `api`, `refresh_token`, `offline_access`, and `id`
+   - The Named Credential will continue to work with the refresh token
+   - This follows the principle of least privilege and reduces security risk
+
+   **How to Reduce Scopes:**
+   1. Go to **Setup** → **Apps** → **App Manager**
+   2. Edit your Connected App (`Tooling API Access`)
+   3. In **Selected OAuth Scopes**, remove **Full access (full)**
+   4. Ensure these remain selected:
+      - ✅ **Access the identity URL service (id, profile, email, address, phone)**
+      - ✅ **Manage user data via APIs (api)**
+      - ✅ **Perform requests at any time (refresh_token, offline_access)**
+   5. Click **Save**
+   6. The Named Credential authentication will persist using the refresh token
 
 ---
 
@@ -348,6 +350,14 @@ After completing this setup:
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: January 2026
+**Document Version**: 2.0
+**Last Updated**: January 30, 2026
 **Maintained By**: Flow AI Audit Dashboard Team
+
+**Changelog v2.0:**
+- Updated OAuth scopes to `full refresh_token offline_access` for initial authentication
+- Added comprehensive OAuth troubleshooting section in Step 3
+- Added guidance for using incognito/private windows during authentication
+- Documented expected multiple login prompts for loopback configuration
+- Added security best practice for reducing scopes after authentication
+- Consolidated all troubleshooting steps into relevant sections
