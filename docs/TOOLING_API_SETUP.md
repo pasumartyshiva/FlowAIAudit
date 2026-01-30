@@ -246,6 +246,67 @@ public class FlowMetadataService {
 
 ---
 
+### Debugging Tip: Authentication Issues with Named Credential
+
+If you're experiencing authentication failures when setting up the Named Credential, try this workaround:
+
+**Problem**: Named Credential authentication fails even with correct OAuth scopes configured.
+
+**Solution**: Temporarily extend API access to "Full" during authentication, then revert to standard scopes.
+
+#### Step-by-Step Process:
+
+1. **Before Authenticating the Named Credential:**
+   - Go to **Setup** → **Apps** → **App Manager**
+   - Find your Connected App (`Tooling API Access`)
+   - Click the dropdown → **Edit**
+   - Scroll to **OAuth Settings**
+
+2. **Temporarily Add Full Access:**
+   - In the **Selected OAuth Scopes** section, add:
+     - ✅ **Full access (full)**
+   - Click **Save**
+
+3. **Authenticate the Named Credential:**
+   - Go to **Setup** → **Security** → **Named Credentials**
+   - Click **Edit** on `Salesforce_Tooling_API`
+   - Check **"Start Authentication Flow on Save"**
+   - Click **Save**
+   - Complete the OAuth authentication flow
+   - Click **Allow** when prompted
+
+4. **Verify Authentication Success:**
+   - Confirm the Named Credential shows **Authentication Status: Authenticated**
+
+5. **Remove Full Access (IMPORTANT):**
+   - Go back to **Setup** → **Apps** → **App Manager**
+   - Edit your Connected App again
+   - In **Selected OAuth Scopes**, remove:
+     - ❌ **Full access (full)**
+   - Keep only these scopes:
+     - ✅ **Access the identity URL service (id, profile, email, address, phone)**
+     - ✅ **Manage user data via APIs (api)**
+     - ✅ **Perform requests at any time (refresh_token, offline_access)**
+   - Click **Save**
+
+6. **Test the Named Credential:**
+   - The Named Credential should remain authenticated
+   - Test with the Anonymous Apex code from Step 4.2
+   - Verify the API calls work correctly
+
+**Why This Works:**
+- Some orgs have strict OAuth policies that can block initial authentication with limited scopes
+- Temporarily granting `full` access allows the OAuth flow to complete successfully
+- Once authenticated, the refresh token works with the more restrictive `api` and `refresh_token` scopes
+- Removing `full` access after authentication follows the principle of least privilege
+
+**Security Note:**
+- Always remove the `full` access scope after authentication completes
+- The application only needs `api` and `refresh_token` for Tooling API access
+- Leaving `full` access enabled is a security risk and not recommended for production
+
+---
+
 ## Configuration Summary
 
 Once setup is complete, you should have:
