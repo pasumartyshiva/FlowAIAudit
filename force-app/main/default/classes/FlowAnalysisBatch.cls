@@ -172,6 +172,7 @@ public with sharing class FlowAnalysisBatch implements Database.Batchable<String
                     'FROM Flow ' +
                     'WHERE Definition.DeveloperName = \'' + String.escapeSingleQuotes(flowApiName) + '\' ' +
                     'AND Status = \'Active\' ' +
+                    'AND ManageableState = \'unmanaged\' ' +
                     'LIMIT 1',
                     'UTF-8'
                 );

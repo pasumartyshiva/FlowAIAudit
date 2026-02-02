@@ -114,6 +114,7 @@ public with sharing class FlowAnalysisQueueable implements Queueable, Database.A
                     'FROM Flow ' +
                     'WHERE Definition.DeveloperName = \'' + String.escapeSingleQuotes(apiName) + '\' ' +
                     'AND Status = \'Active\' ' +
+                    'AND ManageableState = \'unmanaged\' ' +
                     'LIMIT 1',
                     'UTF-8'
                 );

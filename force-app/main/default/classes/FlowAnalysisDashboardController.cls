@@ -129,12 +129,13 @@ public with sharing class FlowAnalysisDashboardController {
     public static String syncFlowList() {
         try {
             // Get all active flows from FlowDefinitionView
-            // Only fetch user-created flows (unmanaged), exclude managed packages
+            // Only fetch user-created flows (unmanaged), exclude managed packages and obfuscated flows
             List<FlowDefinitionView> flows = [
                 SELECT ApiName, Label, Description, VersionNumber
                 FROM FlowDefinitionView
                 WHERE IsActive = true
                 AND ManageableState = 'unmanaged'
+                AND IsTemplate = false
                 AND Label != null
                 WITH USER_MODE
                 ORDER BY Label
@@ -252,6 +253,7 @@ public with sharing class FlowAnalysisDashboardController {
                 FROM FlowDefinitionView
                 WHERE ApiName = :analysis.Flow_API_Name__c
                 AND IsActive = true
+                AND IsTemplate = false
                 WITH USER_MODE
                 LIMIT 1
             ];
@@ -342,6 +344,7 @@ public with sharing class FlowAnalysisDashboardController {
                 FROM FlowDefinitionView
                 WHERE ApiName IN :apiNames
                 AND IsActive = true
+                AND IsTemplate = false
                 WITH USER_MODE
                 LIMIT 2000
             ]) {
@@ -605,6 +608,7 @@ public with sharing class FlowAnalysisDashboardController {
                     'FROM Flow ' +
                     'WHERE Definition.DeveloperName = \'' + String.escapeSingleQuotes(flowApiName) + '\' ' +
                     'AND Status = \'Active\' ' +
+                    'AND ManageableState = \'unmanaged\' ' +
                     'LIMIT 1',
                     'UTF-8'
                 );
@@ -638,7 +642,9 @@ public with sharing class FlowAnalysisDashboardController {
                         // Fallback: query FlowDefinitionView for the label
                         List<FlowDefinitionView> flowDefs = [
                             SELECT Label FROM FlowDefinitionView
-                            WHERE ApiName = :flowApiName AND IsActive = true 
+                            WHERE ApiName = :flowApiName
+                            AND IsActive = true
+                            AND IsTemplate = false
                             WITH USER_MODE
                             LIMIT 1
                         ];
