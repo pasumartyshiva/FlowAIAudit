@@ -130,6 +130,7 @@ public with sharing class FlowAnalysisDashboardController {
         try {
             // Get all active flows from FlowDefinitionView
             // Only fetch user-created flows (unmanaged), exclude managed packages and obfuscated flows
+            // Limit set to 10,000 to balance performance with scalability (covers 99% of orgs)
             List<FlowDefinitionView> flows = [
                 SELECT ApiName, Label, Description, VersionNumber
                 FROM FlowDefinitionView
@@ -139,7 +140,7 @@ public with sharing class FlowAnalysisDashboardController {
                 AND Label != null
                 WITH USER_MODE
                 ORDER BY Label
-                LIMIT 2000
+                LIMIT 10000
             ];
 
             if (flows.isEmpty()) {
@@ -338,6 +339,7 @@ public with sharing class FlowAnalysisDashboardController {
             }
 
             // Get latest flow metadata from FlowDefinitionView
+            // Query flows that exist in our Flow_Analysis__c records (subset of all flows)
             Map<String, FlowDefinitionView> flowMap = new Map<String, FlowDefinitionView>();
             for (FlowDefinitionView flow : [
                 SELECT ApiName, Label, VersionNumber
@@ -346,7 +348,7 @@ public with sharing class FlowAnalysisDashboardController {
                 AND IsActive = true
                 AND IsTemplate = false
                 WITH USER_MODE
-                LIMIT 2000
+                LIMIT 10000
             ]) {
                 flowMap.put(flow.ApiName, flow);
             }
