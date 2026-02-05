@@ -769,7 +769,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
     }
 
     deleteRecords(recordIds) {
-        this.isLoading = true;
+        this.isLoadingSimple = true;
         deleteAnalyses({ recordIds: recordIds })
             .then(() => {
                 this.showToast('Success', `${recordIds.length} record(s) deleted successfully`, 'success');
@@ -785,18 +785,18 @@ export default class FlowAnalysisDashboard extends LightningElement {
                 this.showToast('Error', error.body?.message || 'Error deleting records', 'error');
             })
             .finally(() => {
-                this.isLoading = false;
+                this.isLoadingSimple = false;
             });
     }
 
     // Helper methods
     refreshData() {
-        this.isLoading = true;
+        this.isLoadingSimple = true;
         Promise.all([
             refreshApex(this.wiredSummaryStatsResult),
             refreshApex(this.wiredFlowAnalysesResult)
         ]).finally(() => {
-            this.isLoading = false;
+            this.isLoadingSimple = false;
         });
     }
 
@@ -1061,7 +1061,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
 
     handleDeleteAll() {
         if (confirm('⚠️ Are you sure you want to delete ALL flow analysis records? This action cannot be undone!')) {
-            this.isLoading = true;
+            this.isLoadingSimple = true;
             deleteAllAnalyses()
                 .then(result => {
                     this.showToast('Success', result, 'success');
@@ -1075,7 +1075,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
                     this.showToast('Error', error.body?.message || 'Error deleting records', 'error');
                 })
                 .finally(() => {
-                    this.isLoading = false;
+                    this.isLoadingSimple = false;
                 });
         }
     }
@@ -1084,7 +1084,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
         const flowId = event.target.dataset.id;
         const flow = this.paginatedData.find(f => f.id === flowId);
 
-        this.isLoading = true;
+        this.isLoadingSimple = true;
         updateFlowMetadata({ recordId: flowId })
             .then(result => {
                 this.showToast('Success', result, 'success');
@@ -1097,7 +1097,7 @@ export default class FlowAnalysisDashboard extends LightningElement {
                 this.showToast('Error', error.body?.message || 'Error updating flow', 'error');
             })
             .finally(() => {
-                this.isLoading = false;
+                this.isLoadingSimple = false;
             });
     }
 }

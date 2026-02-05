@@ -14,7 +14,7 @@
                 label="Fetch All Flows"
                 onclick={handleRunAllFlows}
                 variant="brand"
-                disabled={isLoading}
+                disabled={isLoadingSimple}
                 icon-name="utility:refresh"
             ></lightning-button>
             <lightning-button
@@ -435,9 +435,9 @@
 
     <!-- Fancy Loading Modal for Einstein Analysis -->
     <template if:true={isAnalyzing}>
-        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
-            <div class="slds-modal__container" style="max-width: 600px;">
-                <div class="slds-modal__content slds-p-around_large" style="text-align: center;">
+        <div class="slds-notify_container slds-is-fixed" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9000; width: 600px; max-width: 90%;">
+            <div class="slds-box slds-theme_shade" style="box-shadow: 0 0 20px rgba(0,0,0,0.3); padding: 2rem;">
+                <div style="text-align: center;">
                     <!-- Fun Animation -->
                     <div class="analysis-animation">
                         <lightning-icon
@@ -477,8 +477,7 @@
                     </div>
                 </div>
             </div>
-        </section>
-        <div class="slds-backdrop slds-backdrop_open"></div>
+        </div>
     </template>
 
     <!-- Help Modal -->
